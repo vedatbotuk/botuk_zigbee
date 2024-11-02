@@ -13,8 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensure full history is fetched for comparison
-
+          fetch-depth: 0
       - name: Get FIRMWARE_VERSION and VERSION from main
         id: main_values
         run: |
