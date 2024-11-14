@@ -102,6 +102,7 @@ void measure_battery()
 }
 #endif
 
+#ifdef LIGHT_ON_OFF
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
@@ -126,7 +127,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     }
     return ret;
 }
-#endif
 
 #if defined OTA_UPDATE || defined LIGHT_ON_OFF
 static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message)
