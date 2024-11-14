@@ -44,7 +44,7 @@
 #include "temperature_humidity.h"
 #endif
 
-#if defined AUTOMATIC_IRRIGATION || defined LIGHT_ON_OFF
+#ifdef LIGHT_ON_OFF
 #include "light_on_off.h"
 #endif
 
@@ -102,7 +102,6 @@ void measure_battery()
 }
 #endif
 
-#if defined AUTOMATIC_IRRIGATION || defined LIGHT_ON_OFF
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
@@ -129,7 +128,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 }
 #endif
 
-#if defined OTA_UPDATE || defined AUTOMATIC_IRRIGATION || defined LIGHT_ON_OFF
+#if defined OTA_UPDATE || defined LIGHT_ON_OFF
 static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message)
 {
     esp_err_t ret = ESP_OK;
@@ -140,7 +139,7 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
         ret = zb_ota_upgrade_status_handler(*(esp_zb_zcl_ota_upgrade_value_message_t *)message);
         break;
 #endif
-#if defined AUTOMATIC_IRRIGATION || defined LIGHT_ON_OFF
+#ifdef LIGHT_ON_OFF
     case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
         ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
         break;
@@ -206,9 +205,7 @@ static void esp_zb_task(void *pvParameters)
     create_ota_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create OTA_UPDATE Cluster");
 #endif
-#ifdef AUTOMATIC_IRRIGATION
-    create_water_pump_switch_cluster(esp_zb_cluster_list);
-#endif
+
 #ifdef LIGHT_ON_OFF
     create_light_switch_cluster(esp_zb_cluster_list);
 #endif
@@ -222,7 +219,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_ep_list_add_ep(esp_zb_ep_list, esp_zb_cluster_list, endpoint_config);
 
     esp_zb_device_register(esp_zb_ep_list);
-#if defined OTA_UPDATE || defined AUTOMATIC_IRRIGATION || defined LIGHT_ON_OFF
+#if defined OTA_UPDATE || defined LIGHT_ON_OFF
     esp_zb_core_action_handler_register(zb_action_handler);
 #endif
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);

@@ -25,7 +25,7 @@
 #endif
 
 #if (SENSOR_MAP >> 7 & 1) == 1
-#define AUTOMATIC_IRRIGATION true
+#define SOME_FEATURE true
 #endif
 
 #if (SENSOR_MAP >> 8 & 1) == 1
