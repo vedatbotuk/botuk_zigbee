@@ -49,7 +49,6 @@
 #endif
 
 static const char *TAG = "DEVICE";
-
 bool connected = false;
 
 /********************* Define functions **************************/
@@ -61,7 +60,6 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 #if defined SENSOR_TEMPERATURE || defined SENSOR_HUMIDITY
 void measure_temp_hum()
 {
-    /* Measure temperature loop*/
     while (1)
     {
         connected = connection_status();
@@ -86,7 +84,6 @@ void measure_temp_hum()
 #ifdef BATTERY
 void measure_battery()
 {
-    /* Measure battery loop*/
     while (1)
     {
         connected = connection_status();
@@ -103,13 +100,6 @@ void measure_battery()
         vTaskDelay(pdMS_TO_TICKS(600000)); // 600000 ms = 10 minutes
     }
 }
-#endif
-
-#ifdef SENSOR_WATERLEAK
-// TODO
-// Button callback function for waterleak
-// vTaskDelay(pdMS_TO_TICKS(100)); /*This sleep is necessary for the get_button()*/
-// check_waterleak();
 #endif
 
 #if defined AUTOMATIC_IRRIGATION || defined LIGHT_ON_OFF
@@ -199,22 +189,18 @@ static void esp_zb_task(void *pvParameters)
 #ifdef SENSOR_TEMPERATURE
     create_temp_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
-
 #endif
 #ifdef SENSOR_HUMIDITY
     create_hum_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_HUMIDITY Cluster");
-
 #endif
 #ifdef SENSOR_WATERLEAK
     create_waterleak_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_WATERLEAK Cluster");
-
 #endif
 #ifdef BATTERY
     create_battery_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create BATTERY Cluster");
-
 #endif
 #ifdef OTA_UPDATE
     create_ota_cluster(esp_zb_cluster_list);
@@ -258,7 +244,6 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_zb_power_save_init());
 #endif
 #ifdef LIGHT_ON_OFF
-    // light_driver_init(LIGHT_DEFAULT_OFF);
     ESP_LOGI(TAG, "Deferred driver initialization %s", light_driver_init(LIGHT_DEFAULT_OFF) ? "failed" : "successful");
 #endif
 #if defined SENSOR_TEMPERATURE || defined SENSOR_HUMIDITY
