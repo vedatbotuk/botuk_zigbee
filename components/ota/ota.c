@@ -20,72 +20,87 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include <string.h>
+#include "zlib.h"
+#include "esp_ota_ops.h"
 
 static const char *TAG_OTA = "OTA_UPDATE";
 
-const esp_partition_t *s_ota_partition = NULL;
+static const esp_partition_t *s_ota_partition = NULL;
 static esp_ota_handle_t s_ota_handle = 0;
-size_t ota_data_len_ = 0;
-uint8_t *ota_header_ = NULL;
-size_t ota_header_size_ = 0;
-bool ota_upgrade_subelement_ = false;
-bool ota_initialized = false;
+static size_t ota_data_len_ = 0;
+static uint8_t *ota_header_ = NULL;
+static size_t ota_header_size_ = 0;
+static bool ota_upgrade_subelement_ = false;
+static bool ota_initialized = false;
 
-bool CompressedOTA_start(CompressedOTA *ctx)
+typedef struct
 {
-    // If zlib is already initialized, end it
+    const esp_partition_t *part; // Pointer to the OTA partition
+    esp_ota_handle_t handle;     // Handle to manage OTA writing
+    z_stream zlib_stream;        // Zlib stream for decompression
+    bool zlib_init;              // Flag for zlib initialization
+} CompressedOTA;
+
+static size_t min_size_t(size_t a, size_t b)
+{
+    return (a < b) ? a : b;
+}
+
+static void clear_ota_header()
+{
+    free(ota_header_);
+    ota_header_size_ = 0;
+    ota_header_ = NULL;
+}
+
+static bool CompressedOTA_start(CompressedOTA *ctx)
+{
     if (ctx->zlib_init)
     {
         ESP_LOGW(TAG_OTA, "zlib already initialized, ending it");
-        inflateEnd(&ctx->zlib_stream); // Properly clean up the existing zlib stream
-        ctx->zlib_init = false;        // Mark zlib as not initialized
+        inflateEnd(&ctx->zlib_stream);
+        ctx->zlib_init = false;
     }
 
-    // Reset zlib stream structure
-    memset(&ctx->zlib_stream, 0, sizeof(ctx->zlib_stream)); // C-style zero initialization
+    memset(&ctx->zlib_stream, 0, sizeof(ctx->zlib_stream));
     ctx->zlib_stream.zalloc = Z_NULL;
     ctx->zlib_stream.zfree = Z_NULL;
     ctx->zlib_stream.opaque = Z_NULL;
     ctx->zlib_stream.next_in = NULL;
     ctx->zlib_stream.avail_in = 0;
 
-    // Initialize the zlib decompression
     int ret = inflateInit(&ctx->zlib_stream);
     if (ret == Z_OK)
     {
         ESP_LOGI(TAG_OTA, "zlib initialized");
         ctx->zlib_init = true;
+        return true;
     }
     else
     {
         ESP_LOGE(TAG_OTA, "zlib init failed: %d", ret);
         return false;
     }
-
-    return true;
 }
 
-bool CompressedOTA_write(CompressedOTA *ctx, const uint8_t *data, size_t size, bool flush)
+static bool CompressedOTA_write(CompressedOTA *ctx, const uint8_t *data, size_t size, bool flush)
 {
     uint8_t buf[256];
 
     if (ctx->part == NULL)
     {
         ESP_LOGE(TAG_OTA, "OTA not started, partition not initialized");
-        return false; // Partition not initialized
+        return false;
     }
 
-    // Set input data for decompression
     ctx->zlib_stream.avail_in = size;
     ctx->zlib_stream.next_in = (Bytef *)data;
 
     do
     {
-        // Set output buffer for decompression
         ctx->zlib_stream.avail_out = sizeof(buf);
         ctx->zlib_stream.next_out = buf;
 
-        // Perform decompression with zlib
         int ret = inflate(&ctx->zlib_stream, flush ? Z_FINISH : Z_NO_FLUSH);
         if (ret == Z_STREAM_ERROR || ret == Z_NEED_DICT || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR)
         {
@@ -95,10 +110,8 @@ bool CompressedOTA_write(CompressedOTA *ctx, const uint8_t *data, size_t size, b
             return false;
         }
 
-        // Calculate decompressed data size
         size_t available = sizeof(buf) - ctx->zlib_stream.avail_out;
 
-        // If there is data to write, write it to the OTA partition
         if (available > 0)
         {
             esp_err_t err = esp_ota_write(ctx->handle, buf, available);
@@ -115,23 +128,6 @@ bool CompressedOTA_write(CompressedOTA *ctx, const uint8_t *data, size_t size, b
     return true;
 }
 
-size_t min_size_t(size_t a, size_t b)
-{
-    return (a < b) ? a : b;
-}
-
-void clear_ota_header()
-{
-    // Free the allocated memory
-    free(ota_header_);
-
-    // Set size to 0
-    ota_header_size_ = 0;
-
-    // Set the pointer to NULL to avoid accessing freed memory accidentally
-    ota_header_ = NULL;
-}
-
 esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t message)
 {
     static uint32_t total_size = 0;
@@ -139,7 +135,7 @@ esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t m
     static int64_t start_time = 0;
     const uint8_t *payload = (const uint8_t *)message.payload;
     size_t payload_size = message.payload_size;
-    static CompressedOTA ota_ctx; // Static to retain context across calls
+    static CompressedOTA ota_ctx;
 
     esp_err_t ret = ESP_OK;
     if (message.info.status == ESP_ZB_ZCL_STATUS_SUCCESS)
@@ -158,13 +154,9 @@ esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t m
             ESP_RETURN_ON_ERROR(ret, TAG_OTA, "Failed to begin OTA partition, status: %s", esp_err_to_name(ret));
 
             if (!ota_initialized)
-            { // Check if already initialized
-
-                // Initialize the CompressedOTA context
-                memset(&ota_ctx, 0, sizeof(CompressedOTA)); // Ensure the context is zeroed out
-
-                // Assign the partition and handle to the context
-                ota_ctx.part = s_ota_partition; // Correctly use the ota_ctx instance
+            {
+                memset(&ota_ctx, 0, sizeof(CompressedOTA));
+                ota_ctx.part = s_ota_partition;
                 ota_ctx.handle = s_ota_handle;
 
                 if (CompressedOTA_start(&ota_ctx))
@@ -175,7 +167,7 @@ esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t m
                 else
                 {
                     ESP_LOGE(TAG_OTA, "Failed to start OTA process.");
-                    return ESP_FAIL; // Exit if start failed
+                    return ESP_FAIL;
                 }
             }
             break;
@@ -203,16 +195,15 @@ esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t m
                 }
                 else
                 {
-                    ESP_LOGE(TAG_OTA, "OTA sub-elemen not success.");
+                    ESP_LOGE(TAG_OTA, "OTA sub-element not success.");
                 }
             }
 
             if (ota_data_len_)
             {
                 payload_size = min_size_t(ota_data_len_, payload_size);
-                ota_data_len_ = ota_data_len_ - payload_size;
+                ota_data_len_ -= payload_size;
 
-                // Writing the data chunk
                 if (CompressedOTA_write(&ota_ctx, payload, payload_size, false))
                 {
                     ESP_LOGI(TAG_OTA, "Data chunk written successfully.");

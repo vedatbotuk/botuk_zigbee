@@ -18,8 +18,6 @@
 #ifndef OTA_UPDATE_H
 #define OTA_UPDATE_H
 
-#include "esp_ota_ops.h"
-#include "zlib.h"
 #include "esp_zigbee_core.h"
 
 #ifdef __cplusplus
@@ -27,24 +25,7 @@ extern "C"
 {
 #endif
 
-    typedef struct
-    {
-        const esp_partition_t *part; // Pointer to the OTA partition
-        esp_ota_handle_t handle;     // Handle to manage OTA writing
-        z_stream zlib_stream;        // Zlib stream for decompression
-        bool zlib_init;              // Flag for zlib initialization
-    } CompressedOTA;
-
-    extern size_t ota_data_len_;
-    extern uint8_t *ota_header_;
-    extern size_t ota_header_size_;
-    extern bool ota_upgrade_subelement_;
-
-    bool CompressedOTA_write(CompressedOTA *ctx, const uint8_t *data, size_t size, bool flush);
-    bool CompressedOTA_start(CompressedOTA *ctx);
-    size_t min_size_t(size_t a, size_t b);
-    void clear_ota_header(void);
-    esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t messsage);
+    esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t message);
 
 #ifdef __cplusplus
 }
