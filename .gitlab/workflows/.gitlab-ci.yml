@@ -189,7 +189,7 @@ deploy:
 
     # Update the remote URL to use the token
     - git tag $TAG
-    - git push https://${CI_PROJECT_NAME}:${TEST_TOKEN}@gitlab.botuk.de/vedatbotuk/botuk_zigbee.git $TAG
+    - git push https://${CI_PROJECT_NAME}:${CREATE_TAG_TOKEN}@gitlab.botuk.de/vedatbotuk/botuk_zigbee.git $TAG
 
 
     # Generate Release Notes from Commits Since Last Tag
