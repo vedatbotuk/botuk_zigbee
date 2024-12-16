@@ -1,0 +1,16 @@
+name: Restrict Pull Requests to Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR is from dev branch
+        if: github.event.pull_request.head.ref != 'dev'
+        run: |
+          echo "Pull requests to the main branch are only allowed from the dev branch."
+          exit 1

@@ -1,0 +1,35 @@
+name: DEV - ESP32-H2 Project
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-dev:
+    runs-on: ubuntu-latest
+
+    env:
+      IDF_TOOLS_PATH: ${{ github.workspace }}/tools
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: |
+          echo "Setting up environment..."
+          # Execute the setup script
+          chmod +x ./scripts/setup_env.sh  # Make sure the script is executable
+          ./scripts/setup_env.sh  # Run the script
+
+      # Build the project for ESP32-H2
+      - name: Build Project
+        run: |
+          . $HOME/esp/esp-idf/export.sh
+          idf.py set-target esp32h2  # Set target for ESP32-H2
+          idf.py build

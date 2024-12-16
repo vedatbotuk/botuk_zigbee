@@ -1,0 +1,46 @@
+name: Check Firmware Version Change
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-version-change:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure full history is fetched for comparison
+
+      - name: Get FIRMWARE_VERSION and VERSION from main
+        id: main_values
+        run: |
+          # Fetch main branch for comparison
+          git fetch origin main:main
+          # Extract values from main branch
+          MAIN_FIRMWARE_VERSION=$(git show main:settings.conf | grep "^FIRMWARE_VERSION=" | cut -d '=' -f 2)
+          MAIN_VERSION=$(git show main:settings.conf | grep "^VERSION=" | cut -d '=' -f 2)
+          echo "main_firmware_version=$MAIN_FIRMWARE_VERSION" >> $GITHUB_ENV
+          echo "main_version=$MAIN_VERSION" >> $GITHUB_ENV
+
+      - name: Get FIRMWARE_VERSION and VERSION from dev
+        id: dev_values
+        run: |
+          # Extract values from dev branch (current branch)
+          DEV_FIRMWARE_VERSION=$(grep "^FIRMWARE_VERSION=" settings.conf | cut -d '=' -f 2)
+          DEV_VERSION=$(grep "^VERSION=" settings.conf | cut -d '=' -f 2)
+          echo "dev_firmware_version=$DEV_FIRMWARE_VERSION" >> $GITHUB_ENV
+          echo "dev_version=$DEV_VERSION" >> $GITHUB_ENV
+
+      - name: Check if versions have changed
+        run: |
+          # Compare versions from dev and main
+          if [[ "$main_firmware_version" == "$dev_firmware_version" ]] || [[ "$main_version" == "$dev_version" ]]; then
+            echo "Error: FIRMWARE_VERSION or VERSION have not changed."
+            exit 1
+          else
+            echo "Success: FIRMWARE_VERSION or VERSION has changed."
+          fi

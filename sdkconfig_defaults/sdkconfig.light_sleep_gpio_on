@@ -1,0 +1,4 @@
+#
+# light sleep gpio on
+# Following config should be n. During sleep should gpio open
+CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP=n

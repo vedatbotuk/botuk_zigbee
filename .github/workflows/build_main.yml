@@ -1,0 +1,43 @@
+name: PROD - ESP32-H2 Project
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-main:
+    runs-on: ubuntu-latest
+
+    env:
+      IDF_TOOLS_PATH: ${{ github.workspace }}/tools
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up environment
+      - name: Set up environment
+        run: |
+          echo "Setting up environment..."
+          # Execute the setup script
+          chmod +x ./scripts/setup_env.sh  # Make sure the script is executable
+          ./scripts/setup_env.sh  # Run the script
+
+      # Run the prod script
+      - name: Make prod script executable
+        run: chmod +x ./scripts/prod.sh  # Ensure the script is executable
+
+      - name: Run the Bash script
+        run: ./scripts/prod.sh  # Execute script
+
+      # Upload artifact
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ota
+          path: ./ota/*
+
+      - name: Clean up
+        run: echo "Workflow completed."

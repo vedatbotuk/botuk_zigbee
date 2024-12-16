@@ -1,0 +1,22 @@
+name: Block merge if todos are incomplete in PR description
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check_pr_description:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for unchecked to-do items in PR description
+        env:
+          PR_BODY: "${{ github.event.pull_request.body }}"
+        run: |
+          # Check the PR description for any unchecked to-do items
+          if echo "$PR_BODY" | grep '\- \[ \]'; then
+            echo "Error: Found incomplete to-do items in PR description."
+            exit 1
+          else
+            echo "All to-do items are complete in PR description."
+          fi

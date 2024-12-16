@@ -1,0 +1,277 @@
+stages:
+  - validate
+  - build
+  - prod
+  - prepare
+  - deploy
+  - cleanup
+
+# Only dev branch can be merged to main branch
+# Check if merging to main branch possible
+# ############################################
+restrict_pr_to_main:
+  stage: validate
+  rules:
+  when: always # Ensure this job is never skipped
+  only:
+    - merge_requests
+  script:
+    - >
+      if [[ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "main" && "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != "dev" ]];
+      then
+      echo "Pull requests to the main branch are only allowed from the dev branch.";
+      exit 1;
+      fi
+
+# Pull request can be have some todos
+# Check before merging, if all todos is done
+############################################
+check_pr_description:
+  stage: validate
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  when: always # Ensure this job is never skipped
+  only:
+    - merge_requests
+  script:
+    # Fetch the PR description from the GitLab API
+    - API_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID"
+    - 'echo "Fetching PR description from: $API_URL"'
+
+    # Fetch the PR details using curl
+    - >
+      API_RESPONSE=$(curl
+      --silent
+      --header
+      "JOB-TOKEN:${CI_JOB_TOKEN}"
+      "$API_URL")
+    
+    # - echo $API_RESPONSE
+
+    # Extract the description field
+    - MR_DESCRIPTION=$(echo "$API_RESPONSE" | jq -r '.description')
+    - 'echo "PR Description: $MR_DESCRIPTION"'
+
+    # Check if there are any unchecked to-do items in the description
+    - >
+      if echo "$MR_DESCRIPTION" | grep -q '\- \[ \]';
+      then
+      echo "Error: Found unchecked to-do items in PR description.";
+      exit 1;
+      else
+      echo "No unchecked to-do items found in PR description.";
+      fi
+
+# Firmwar version and ota version
+# shoulc be updated befor merging
+# to main branch
+#################################
+check_firmware_version:
+  stage: validate
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  when: always # Ensure this job is never skipped
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+  script:
+    - git fetch origin main:main
+
+    # Extract values from the main branch
+    - MAIN_FIRMWARE_VERSION=$(git show main:settings.conf | grep "^FIRMWARE_VERSION=" | cut -d '=' -f 2)
+    - MAIN_VERSION=$(git show main:settings.conf | grep "^VERSION=" | cut -d '=' -f 2)
+    - echo "main_firmware_version=$MAIN_FIRMWARE_VERSION"
+    - echo "main_version=$MAIN_VERSION"
+
+    # Extract values from the current (source) branch (dev or other)
+    - DEV_FIRMWARE_VERSION=$(grep "^FIRMWARE_VERSION=" settings.conf | cut -d '=' -f 2)
+    - DEV_VERSION=$(grep "^VERSION=" settings.conf | cut -d '=' -f 2)
+    - echo "dev_firmware_version=$DEV_FIRMWARE_VERSION"
+    - echo "dev_version=$DEV_VERSION"
+
+    # Compare the versions from the main and dev branches
+    - >
+      if [[ "$MAIN_FIRMWARE_VERSION" == "$DEV_FIRMWARE_VERSION" ]] || [[ "$MAIN_VERSION" == "$DEV_VERSION" ]];
+      then
+      echo "Error: FIRMWARE_VERSION or VERSION have not changed.";
+      exit 1;
+      else
+      echo "Success: FIRMWARE_VERSION or VERSION has changed.";
+      fi
+
+# Building dev before merge to dev branch
+# This comes from features branch
+# ########################################
+build_dev:
+  stage: build
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  rules:
+  - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+    when: always
+  script:
+    - echo "Repository already checked out by GitLab Runner."
+    - source $HOME/esp/esp-idf/export.sh
+    - idf.py set-target esp32h2
+    - idf.py build
+
+# Building prod before merging to main branch
+# ###########################################
+build_prod:
+  stage: prod
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+  script:
+    - echo "Repository checked out by GitLab Runner"
+    - source $HOME/esp/esp-idf/export.sh
+    - chmod +x ./scripts/prod.sh
+    - ./scripts/prod.sh
+  artifacts:
+    paths:
+      - ./ota/*
+    expire_in: 1 hour
+
+.deploy_rule: &deploy_rule
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+
+
+# Deploying after merging to main branch
+# ######################################
+prepare_job:
+  stage: prepare
+  rules: *deploy_rule
+  script:
+    # Load settings from settings.conf
+    - echo "Loading FIRMWARE_VERSION and VERSION from settings.conf"
+    - source settings.conf
+    - export FIRMWARE_VERSION
+    - export VERSION
+    - echo "FIRMWARE_VERSION=$FIRMWARE_VERSION" >> variables.env
+    - echo "VERSION=$VERSION"  >> variables.env
+
+    # Set up version tag based on firmware version and version
+    - echo "TAG=${FIRMWARE_VERSION}_${VERSION}" >> variables.env
+  artifacts:
+    reports:
+      dotenv: variables.env
+
+deploy:
+  variables:
+    PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$FIRMWARE_VERSION/1.0.0"
+
+  stage: deploy
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  needs:
+    - job: prepare_job
+      artifacts: true
+  rules: *deploy_rule
+  script:
+    # Run the prod script
+    - chmod +x ./scripts/prod.sh
+    - ./scripts/prod.sh
+    # DEBUG LINES
+    # - mkdir ota
+    # - touch ota/botuk_index1.json
+    # - touch ota/botuk_index2.json
+    # - touch ota/botuk_index3.json
+    # - pwd
+    # - ls /builds/vedatbotuk/botuk_zigbee
+    # - ls /builds/vedatbotuk/botuk_zigbee/ota
+    # - ls ota
+
+    # Create and push tag
+    - git config user.name "gitlab-ci-bot"
+    - git config user.email "gitlab-ci-bot@gitlab.botuk.de"
+
+    # Update the remote URL to use the token
+    - git tag $TAG
+    - git push https://${CI_PROJECT_NAME}:${TEST_TOKEN}@gitlab.botuk.de/vedatbotuk/botuk_zigbee.git $TAG
+
+
+    # Generate Release Notes from Commits Since Last Tag
+    - LATEST_TAG=$(git describe --tags --abbrev=0)
+    - COMMITS=$(git log $LATEST_TAG..HEAD --pretty=format:"%s")
+    - RELEASE_NOTES="## Release Notes\n"
+    - >
+      if [[ -z "$COMMITS" ]]; then RELEASE_NOTES="No new changes since last tag."; 
+      else RELEASE_NOTES=""; for COMMIT in $COMMITS; do RELEASE_NOTES="${RELEASE_NOTES}\n- $COMMIT"; done; 
+      fi
+    - echo "$RELEASE_NOTES" > release_notes.txt
+
+    - cat release_notes.txt
+    - echo "RELEASE_NOTES=TEST" >> variables.env
+
+    # Generate dynamic assets list for all files in the ota directory
+    - echo "Generating release assets..."
+    - >
+      cd ota; assets="["; for file in *; do if [[ -f "$file" ]]; then file_name=$(basename "$file");
+      assets="$assets
+      {\"name\": \"$file_name\",
+      \"url\": \"${PACKAGE_REGISTRY_URL}/$file\",
+      \"link_type\":\"other\"
+      },";
+      echo "${PACKAGE_REGISTRY_URL}/$file";
+      ls -l;
+      curl --header "JOB-TOKEN:${CI_JOB_TOKEN}" --upload-file $file "${PACKAGE_REGISTRY_URL}/$file";
+      fi;
+      done;
+      assets="${assets%,}]"
+
+    # DEBUG LINES
+    # - echo "$assets"
+
+    # Create the release
+    - >
+      release-cli create --description "$RELEASE_NOTES"
+      --tag-name "$TAG"
+      --ref "$CI_COMMIT_SHA"
+      --assets-link "$assets"
+  artifacts:
+    paths:
+      - ota/*
+    expire_in: 1 hour
+
+
+# CLEANUP
+# #######
+.common_rule_pr_to_main: &common_rule_pr_to_main
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+
+.common_rule_pr_to_dev: &common_rule_pr_to_dev
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+
+# a YAML anchor reduces repetition
+.cleanup_job: &cleanup_job
+  stage: cleanup
+  # only:
+  # - merge_requests
+  script:
+    - echo Cleaned up deployment
+
+# cleanup_success:
+#   stage: cleanup
+#   needs:
+#     - build_prod
+#     - deploy
+#   rules: *common_rule_pr_to_main
+#   when: on_success
+#   <<: *cleanup_job
+#   script:
+#     - echo "Cleanup after successful build or deploy"
+#     - echo "Additional cleanup commands go here"
+
+# cleanup_failure:
+#   stage: cleanup
+#   needs:
+#     - build_prod
+#     - deploy
+#   rules: *common_rule_pr_to_main
+#   when: on_failure
+#   <<: *cleanup_job
+#   script:
+#     - echo "Cleanup after failed build or deploy"
+#     - echo "Additional failure-specific cleanup commands go here"

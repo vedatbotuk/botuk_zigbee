@@ -1,0 +1,4 @@
+#
+# light sleep gpio off
+#
+CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP=y

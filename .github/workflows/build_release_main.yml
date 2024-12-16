@@ -1,0 +1,118 @@
+name: Release - ESP32-H2 Project
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-release-main:
+    runs-on: ubuntu-latest
+
+    env:
+      IDF_TOOLS_PATH: ${{ github.workspace }}/tools
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Load settings from settings.conf file
+      - name: Load FIRMWARE_VERSION and VERSION from settings.conf
+        id: load_settings
+        run: |
+          source settings.conf
+          echo "FIRMWARE_VERSION=$FIRMWARE_VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # Set up environment
+      - name: Set up environment
+        run: |
+          echo "Setting up environment..."
+          chmod +x ./scripts/setup_env.sh
+          ./scripts/setup_env.sh
+      
+      # Run the prod script
+      - name: Make prod script executable
+        run: chmod +x ./scripts/prod.sh 
+
+      - name: Run the production script
+        run: ./scripts/prod.sh 
+
+      - name: List Files in ota Directory
+        run: ls -al ota
+
+      # Set up a unique version tag based on firmware version and version
+      - name: Set up version tag
+        id: version_tag
+        run: |
+          TAG="${{ env.FIRMWARE_VERSION }}_${{ env.VERSION }}"
+          echo "New tag: $TAG"
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Create and push tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ env.TAG }}
+          git push origin ${{ env.TAG }}
+
+      # Generate release notes from new merged pull requests since last tag
+      - name: Generate Release Notes from Commits Since Last Tag
+        id: generate_release_notes
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const latestTagResponse = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const latestTag = latestTagResponse.data.tag_name;
+
+            const { data: commits } = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              since: latestTagResponse.data.published_at
+            });
+
+            // Filter and format commits to get merged PRs only
+            const mergedPulls = commits
+              .filter(commit => commit.commit.message.includes('Merge pull request'))
+              .map(commit => {
+                const prNumber = commit.commit.message.match(/#(\d+)/)?.[1];
+                return prNumber
+                  ? `- ${commit.commit.message.split('\n')[0]} by @${commit.author.login} (#${prNumber})`
+                  : `- ${commit.commit.message.split('\n')[0]} by @${commit.author.login}`;
+              })
+              .join('\n');
+
+            core.setOutput('release_notes', mergedPulls || "No new changes since last tag.");
+
+
+      # Create GitHub Release with Release Notes
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG }}
+          release_name: "${{ env.FIRMWARE_VERSION }}_${{ env.VERSION }}"
+          body: |
+            Automated release for changes merged into main.
+            
+            ## Release Notes
+            ${{ steps.generate_release_notes.outputs.release_notes }}
+          draft: false
+          prerelease: false
+         
+      # Upload Binary Files to the Release
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.TAG }}
+          files: ota/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
