@@ -194,15 +194,25 @@ deploy:
     # Generate Release Notes from Commits Since Last Tag
     - LATEST_TAG=$(git describe --tags --abbrev=0)
     - COMMITS=$(git log $LATEST_TAG..HEAD --pretty=format:"%s")
-    - RELEASE_NOTES="## Release Notes\n"
-    - >
-      if [[ -z "$COMMITS" ]]; then RELEASE_NOTES="No new changes since last tag."; 
-      else RELEASE_NOTES=""; for COMMIT in $COMMITS; do RELEASE_NOTES="${RELEASE_NOTES}\n- $COMMIT"; done; 
-      fi
-    - echo "$RELEASE_NOTES" > release_notes.txt
 
+    - RELEASE_NOTES="Release Notes"
+    - >
+      if [[ -z "$COMMITS" ]];
+      then
+      RELEASE_NOTES="No new changes since last tag.";
+      else
+      IFS=$'\n';
+      for COMMIT in $COMMITS;
+      do
+      COMMIT_HASH=$(echo "$COMMIT" | cut -d '|' -f 1);
+      COMMIT_MESSAGE=$(echo "$COMMIT" | cut -d '|' -f 2);
+      RELEASE_NOTES="${RELEASE_NOTES}\n- Commit: ${COMMIT_HASH}\n  Message: ${COMMIT_MESSAGE}";
+      done
+      fi
+
+    # Save release notes to file
+    - echo -e "$RELEASE_NOTES" > release_notes.txt
     - cat release_notes.txt
-    - echo "RELEASE_NOTES=TEST" >> variables.env
 
     # Generate dynamic assets list for all files in the ota directory
     - echo "Generating release assets..."
@@ -225,7 +235,7 @@ deploy:
 
     # Create the release
     - >
-      release-cli create --description "$RELEASE_NOTES"
+      release-cli create --description "$(echo -e "$RELEASE_NOTES")"
       --tag-name "$TAG"
       --ref "$CI_COMMIT_SHA"
       --assets-link "$assets"
