@@ -53,7 +53,7 @@ const definition = {
     e.battery_low(), // Low battery warning
     e.tamper() // Tamper detection
   ],
-  ota: ota.zigbeeOTA
+  ota: true
 };
 
 module.exports = definition;

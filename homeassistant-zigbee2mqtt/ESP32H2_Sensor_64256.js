@@ -42,7 +42,7 @@ const definition = {
     e.battery(),
     e.water_leak(), // Water leakage detection
   ],
-  ota: ota.zigbeeOTA
+  ota: true
 };
 
 module.exports = definition;
