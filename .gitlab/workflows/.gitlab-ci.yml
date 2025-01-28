@@ -167,6 +167,13 @@ deploy:
       artifacts: true
   rules: *deploy_rule
   script:
+    # Load settings from settings.conf and set up version tag
+    - echo "Loading FIRMWARE_VERSION and VERSION from settings.conf"
+    - source settings.conf
+    - export FIRMWARE_VERSION
+    - export VERSION
+    - NEW_TAG=${FIRMWARE_VERSION}_${VERSION}
+
     # Run the prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
