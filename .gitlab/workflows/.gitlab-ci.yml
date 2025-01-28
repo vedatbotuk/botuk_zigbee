@@ -138,11 +138,11 @@ build_prod:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
 
-
 # Deploying after merging to main branch
 # ######################################
 prepare_job:
   stage: prepare
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
   rules: *deploy_rule
   script:
     # Load settings from settings.conf
@@ -242,43 +242,147 @@ deploy:
       - ota/*
     expire_in: 1 hour
 
+# Sync README.md and images to Wiki.js
+sync_gitlab_wiki_to_wikijs:
+  stage: deploy
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  before_script:
+    # Set up Git config for fetching the wiki
+    - git config --global user.email "ci@example.com"
+    - git config --global user.name "GitLab CI/CD"
+
+  script:
+    # Clone the GitLab wiki repository
+    - echo "Cloning the GitLab wiki repository..."
+    - git clone https://$CI_JOB_TOKEN:@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.wiki.git
+
+    # Navigate to the cloned wiki repository
+    - cd $CI_PROJECT_NAME.wiki
+
+    - >
+      RESPONSE=$(curl -s -X POST "https://wiki.botuk.de/graphql" -H "Authorization: Bearer $WIKI_API_TOKEN" -H "Content-Type: application/json" -d '{"query": "query { pages { list { id path } } }"}')
+    - echo ${RESPONSE}
+
+    - >
+      PAGE_ID_LIST=();
+      for PAGE in $(find . -type f -name "*.md");
+      do
+          RELATIVE_PATH=$(echo "$PAGE" | sed 's|^\./||; s|\.md$||')
+          EXPECTED_PATH="technical/project/botuk_zigbee/$RELATIVE_PATH";
+          PAGE_ID=$(echo "$RESPONSE" | jq -r --arg path "$EXPECTED_PATH" '.data.pages.list[] | select(.path == $path) | .id');
+          if [[ -z "$PAGE_ID" || "$PAGE_ID" == "null" ]];
+          then
+              PAGE_ID_LIST+=("new_page");
+          else
+              PAGE_ID_LIST+=("$PAGE_ID");
+          fi
+      done
+
+    # Wrap the IDs in the array format
+    - echo "PAGE_ID_LIST=(${PAGE_ID_LIST[@]})"
+
+    - >
+      DATA=();
+      COUNTER=0;
+      for PAGE in $(find . -type f -name "*.md");
+      do
+          JSON_CONTENT=$(jq -Rs '.' < "$PAGE");
+          if [[ $JSON_CONTENT == '""' ]];
+          then
+              JSON_CONTENT='"Page cannot be empty. Auto-generated content."';
+          fi
+          PAGE_TITLE=$(basename "$PAGE" .md);
+          RELATIVE_PATH=$(echo "$PAGE" | sed 's|^\./||; s|\.md$||')
+          SUB_PATH=$(echo "$RELATIVE_PATH" | sed 's/_/-/g');
+
+          FULL_PATH="/technical/project/botuk_zigbee/$SUB_PATH";
+
+          echo $FULL_PATH
+          echo $PAGE_TITLE
+          echo $RELATIVE_PATH
+          echo ${PAGE_ID_LIST[${COUNTER}]}
+          
+          DATA+=("$JSON_CONTENT" "$FULL_PATH" "${PAGE_ID_LIST[${COUNTER}]}" "${PAGE_TITLE}");
+
+          COUNTER=$((COUNTER + 1))
+      done
+
+    - echo "{${DATA[*]}}"
+
+    - >
+      COUNTER=0;
+      for PAGE_ID in "${PAGE_ID_LIST[@]}";
+      do
+          JSON_CONTENT=${DATA[$COUNTER]}
+          FULL_PATH=${DATA[$COUNTER + 1]}
+          PAGE_ID=${DATA[$COUNTER + 2]}
+          PAGE_TITLE=${DATA[$COUNTER + 3]}
+          echo "Processing $PAGE_TITLE...";
+          echo 
+          echo $FULL_PATH
+          echo ${PAGE_ID}
+
+          if [[ "$PAGE_ID" =~ ^[0-9]+$ ]];
+          then
+              echo "Page exists with ID: $PAGE_ID. Updating...";
+              curl -s -X POST "https://wiki.botuk.de/graphql" \
+              -H "Authorization: Bearer $WIKI_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                  "query": "mutation UpdatePage($id: Int!, $content: String!, $description: String!, $editor: String!, $isPublished: Boolean!, $isPrivate: Boolean!, $locale: String!, $tags: [String]!, $title: String!) { pages { update(id: $id, content: $content, description: $description, editor: $editor, isPublished: $isPublished, isPrivate: $isPrivate, locale: $locale, tags: $tags, title: $title) { responseResult { succeeded errorCode message } page { id path title content } } } }",
+                  "variables": {
+                      "id": '$PAGE_ID',
+                      "content": '"$JSON_CONTENT"',
+                      "description": "Synced from GitLab Wiki",
+                      "editor": "markdown",
+                      "isPublished": true,
+                      "isPrivate": false,
+                      "locale": "en",
+                      "tags": ["GitLab", "Sync"],
+                      "title": "'"$PAGE_TITLE"'"
+                  }
+              }';
+          else
+              echo "Page does not exists, create new page";
+              CREATE_RESPONSE=$(curl -s -X POST "https://wiki.botuk.de/graphql" \
+              -H "Authorization: Bearer $WIKI_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                  "query": "mutation CreatePage($content: String!, $description: String!, $editor: String!, $isPublished: Boolean!, $isPrivate: Boolean!, $locale: String!, $path: String!, $tags: [String]!, $title: String!) { pages { create(content: $content, description: $description, editor: $editor, isPublished: $isPublished, isPrivate: $isPrivate, locale: $locale, path: $path, tags: $tags, title: $title) { responseResult { succeeded errorCode message } page { id path title content } } } }",
+                  "variables": {
+                      "content": '"$JSON_CONTENT"',
+                      "description": "Synced from GitLab Wiki",
+                      "editor": "markdown",
+                      "isPublished": true,
+                      "isPrivate": false,
+                      "locale": "en",
+                      "path": "'"$FULL_PATH"'",
+                      "tags": ["GitLab", "Sync"],
+                      "title": "'"$PAGE_TITLE"'"
+                  }
+              }');
+              CREATE_SUCCESS=$(echo "$CREATE_RESPONSE" | jq -r '.data.pages.create.responseResult.succeeded');
+              if [ "$CREATE_SUCCESS" != "true" ];
+              then
+                  ERROR_MSG=$(echo "$CREATE_RESPONSE" | jq -r '.data.pages.create.responseResult.message');
+                  echo "Failed to create the page. Error: $ERROR_MSG";
+              fi
+          fi
+          COUNTER=$((COUNTER + 4))
+        done
+
+
+    - echo "Sync complete!"
+
+  only:
+    - main  # Trigger on changes to the main branch
 
 # CLEANUP
 # #######
-.common_rule_pr_to_main: &common_rule_pr_to_main
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
-
-.common_rule_pr_to_dev: &common_rule_pr_to_dev
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
-
-# a YAML anchor reduces repetition
-.cleanup_job: &cleanup_job
+cleanup: &cleanup
   stage: cleanup
-  # only:
-  # - merge_requests
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
   script:
-    - echo Cleaned up deployment
-
-# cleanup_success:
-#   stage: cleanup
-#   needs:
-#     - build_prod
-#     - deploy
-#   rules: *common_rule_pr_to_main
-#   when: on_success
-#   <<: *cleanup_job
-#   script:
-#     - echo "Cleanup after successful build or deploy"
-#     - echo "Additional cleanup commands go here"
-
-# cleanup_failure:
-#   stage: cleanup
-#   needs:
-#     - build_prod
-#     - deploy
-#   rules: *common_rule_pr_to_main
-#   when: on_failure
-#   <<: *cleanup_job
-#   script:
-#     - echo "Cleanup after failed build or deploy"
-#     - echo "Additional failure-specific cleanup commands go here"
+    - rm -rf ./*
+  only:
+    - merge_requests
