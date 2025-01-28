@@ -138,11 +138,11 @@ build_prod:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
 
-
 # Deploying after merging to main branch
 # ######################################
 prepare_job:
   stage: prepare
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
   rules: *deploy_rule
   script:
     # Load settings from settings.conf
@@ -160,9 +160,6 @@ prepare_job:
       dotenv: variables.env
 
 deploy:
-  variables:
-    PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$FIRMWARE_VERSION/1.0.0"
-
   stage: deploy
   image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
   needs:
@@ -170,6 +167,13 @@ deploy:
       artifacts: true
   rules: *deploy_rule
   script:
+    # Load settings from settings.conf and set up version tag
+    - echo "Loading FIRMWARE_VERSION and VERSION from settings.conf"
+    - source settings.conf
+    - export FIRMWARE_VERSION
+    - export VERSION
+    - NEW_TAG=${FIRMWARE_VERSION}_${VERSION}
+
     # Run the prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
@@ -187,26 +191,36 @@ deploy:
     - git config user.name "gitlab-ci-bot"
     - git config user.email "gitlab-ci-bot@gitlab.botuk.de"
 
-    # Update the remote URL to use the token
-    - git tag $TAG
-    - git push https://${CI_PROJECT_NAME}:${TEST_TOKEN}@gitlab.botuk.de/vedatbotuk/botuk_zigbee.git $TAG
-
-
     # Generate Release Notes from Commits Since Last Tag
-    - LATEST_TAG=$(git describe --tags --abbrev=0)
-    - COMMITS=$(git log $LATEST_TAG..HEAD --pretty=format:"%s")
-    - RELEASE_NOTES="## Release Notes\n"
+    # Check for existing tags
+    - LATEST_TAG=$(git describe --tags --abbrev=0 || echo "")
+    - COMMITS=$(git log "$LATEST_TAG"..HEAD --pretty=format:"%H|%s")
+    - RELEASE_NOTES="Release Notes"
     - >
-      if [[ -z "$COMMITS" ]]; then RELEASE_NOTES="No new changes since last tag."; 
-      else RELEASE_NOTES=""; for COMMIT in $COMMITS; do RELEASE_NOTES="${RELEASE_NOTES}\n- $COMMIT"; done; 
+      if [[ -z "$COMMITS" ]];
+      then
+      RELEASE_NOTES="No new changes since last tag.";
+      else
+      IFS=$'\n';
+      for COMMIT in $COMMITS;
+      do
+      COMMIT_HASH=$(echo "$COMMIT" | cut -d '|' -f 1);
+      COMMIT_MESSAGE=$(echo "$COMMIT" | cut -d '|' -f 2);
+      RELEASE_NOTES="${RELEASE_NOTES}\n- Commit: ${COMMIT_HASH}\n  Message: ${COMMIT_MESSAGE}";
+      done
       fi
-    - echo "$RELEASE_NOTES" > release_notes.txt
 
+    # Save release notes to file
+    - echo -e "$RELEASE_NOTES" > release_notes.txt
     - cat release_notes.txt
-    - echo "RELEASE_NOTES=TEST" >> variables.env
+
+    # Update the remote URL to use the token
+    - git tag $NEW_TAG
+    - git push https://${CI_PROJECT_NAME}:${RELEASE_TOKEN}@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.git $NEW_TAG
 
     # Generate dynamic assets list for all files in the ota directory
     - echo "Generating release assets..."
+    - PACKAGE_REGISTRY_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$NEW_TAG/1.0.0"
     - >
       cd ota; assets="["; for file in *; do if [[ -f "$file" ]]; then file_name=$(basename "$file");
       assets="$assets
@@ -226,8 +240,8 @@ deploy:
 
     # Create the release
     - >
-      release-cli create --description "$RELEASE_NOTES"
-      --tag-name "$TAG"
+      release-cli create --description "$(echo -e "$RELEASE_NOTES")"
+      --tag-name "$NEW_TAG"
       --ref "$CI_COMMIT_SHA"
       --assets-link "$assets"
   artifacts:
@@ -235,43 +249,147 @@ deploy:
       - ota/*
     expire_in: 1 hour
 
+# Sync README.md and images to Wiki.js
+sync_gitlab_wiki_to_wikijs:
+  stage: deploy
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  before_script:
+    # Set up Git config for fetching the wiki
+    - git config --global user.email "ci@example.com"
+    - git config --global user.name "GitLab CI/CD"
+
+  script:
+    # Clone the GitLab wiki repository
+    - echo "Cloning the GitLab wiki repository..."
+    - git clone https://$CI_JOB_TOKEN:@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.wiki.git
+
+    # Navigate to the cloned wiki repository
+    - cd $CI_PROJECT_NAME.wiki
+
+    - >
+      RESPONSE=$(curl -s -X POST "https://wiki.botuk.de/graphql" -H "Authorization: Bearer $WIKI_API_TOKEN" -H "Content-Type: application/json" -d '{"query": "query { pages { list { id path } } }"}')
+    - echo ${RESPONSE}
+
+    - >
+      PAGE_ID_LIST=();
+      for PAGE in $(find . -type f -name "*.md");
+      do
+          RELATIVE_PATH=$(echo "$PAGE" | sed 's|^\./||; s|\.md$||')
+          EXPECTED_PATH="technical/project/botuk_zigbee/$RELATIVE_PATH";
+          PAGE_ID=$(echo "$RESPONSE" | jq -r --arg path "$EXPECTED_PATH" '.data.pages.list[] | select(.path == $path) | .id');
+          if [[ -z "$PAGE_ID" || "$PAGE_ID" == "null" ]];
+          then
+              PAGE_ID_LIST+=("new_page");
+          else
+              PAGE_ID_LIST+=("$PAGE_ID");
+          fi
+      done
+
+    # Wrap the IDs in the array format
+    - echo "PAGE_ID_LIST=(${PAGE_ID_LIST[@]})"
+
+    - >
+      DATA=();
+      COUNTER=0;
+      for PAGE in $(find . -type f -name "*.md");
+      do
+          JSON_CONTENT=$(jq -Rs '.' < "$PAGE");
+          if [[ $JSON_CONTENT == '""' ]];
+          then
+              JSON_CONTENT='"Page cannot be empty. Auto-generated content."';
+          fi
+          PAGE_TITLE=$(basename "$PAGE" .md);
+          RELATIVE_PATH=$(echo "$PAGE" | sed 's|^\./||; s|\.md$||')
+          SUB_PATH=$(echo "$RELATIVE_PATH" | sed 's/_/-/g');
+
+          FULL_PATH="/technical/project/botuk_zigbee/$SUB_PATH";
+
+          echo $FULL_PATH
+          echo $PAGE_TITLE
+          echo $RELATIVE_PATH
+          echo ${PAGE_ID_LIST[${COUNTER}]}
+          
+          DATA+=("$JSON_CONTENT" "$FULL_PATH" "${PAGE_ID_LIST[${COUNTER}]}" "${PAGE_TITLE}");
+
+          COUNTER=$((COUNTER + 1))
+      done
+
+    - echo "{${DATA[*]}}"
+
+    - >
+      COUNTER=0;
+      for PAGE_ID in "${PAGE_ID_LIST[@]}";
+      do
+          JSON_CONTENT=${DATA[$COUNTER]}
+          FULL_PATH=${DATA[$COUNTER + 1]}
+          PAGE_ID=${DATA[$COUNTER + 2]}
+          PAGE_TITLE=${DATA[$COUNTER + 3]}
+          echo "Processing $PAGE_TITLE...";
+          echo 
+          echo $FULL_PATH
+          echo ${PAGE_ID}
+
+          if [[ "$PAGE_ID" =~ ^[0-9]+$ ]];
+          then
+              echo "Page exists with ID: $PAGE_ID. Updating...";
+              curl -s -X POST "https://wiki.botuk.de/graphql" \
+              -H "Authorization: Bearer $WIKI_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                  "query": "mutation UpdatePage($id: Int!, $content: String!, $description: String!, $editor: String!, $isPublished: Boolean!, $isPrivate: Boolean!, $locale: String!, $tags: [String]!, $title: String!) { pages { update(id: $id, content: $content, description: $description, editor: $editor, isPublished: $isPublished, isPrivate: $isPrivate, locale: $locale, tags: $tags, title: $title) { responseResult { succeeded errorCode message } page { id path title content } } } }",
+                  "variables": {
+                      "id": '$PAGE_ID',
+                      "content": '"$JSON_CONTENT"',
+                      "description": "Synced from GitLab Wiki",
+                      "editor": "markdown",
+                      "isPublished": true,
+                      "isPrivate": false,
+                      "locale": "en",
+                      "tags": ["GitLab", "Sync"],
+                      "title": "'"$PAGE_TITLE"'"
+                  }
+              }';
+          else
+              echo "Page does not exists, create new page";
+              CREATE_RESPONSE=$(curl -s -X POST "https://wiki.botuk.de/graphql" \
+              -H "Authorization: Bearer $WIKI_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                  "query": "mutation CreatePage($content: String!, $description: String!, $editor: String!, $isPublished: Boolean!, $isPrivate: Boolean!, $locale: String!, $path: String!, $tags: [String]!, $title: String!) { pages { create(content: $content, description: $description, editor: $editor, isPublished: $isPublished, isPrivate: $isPrivate, locale: $locale, path: $path, tags: $tags, title: $title) { responseResult { succeeded errorCode message } page { id path title content } } } }",
+                  "variables": {
+                      "content": '"$JSON_CONTENT"',
+                      "description": "Synced from GitLab Wiki",
+                      "editor": "markdown",
+                      "isPublished": true,
+                      "isPrivate": false,
+                      "locale": "en",
+                      "path": "'"$FULL_PATH"'",
+                      "tags": ["GitLab", "Sync"],
+                      "title": "'"$PAGE_TITLE"'"
+                  }
+              }');
+              CREATE_SUCCESS=$(echo "$CREATE_RESPONSE" | jq -r '.data.pages.create.responseResult.succeeded');
+              if [ "$CREATE_SUCCESS" != "true" ];
+              then
+                  ERROR_MSG=$(echo "$CREATE_RESPONSE" | jq -r '.data.pages.create.responseResult.message');
+                  echo "Failed to create the page. Error: $ERROR_MSG";
+              fi
+          fi
+          COUNTER=$((COUNTER + 4))
+        done
+
+
+    - echo "Sync complete!"
+
+  only:
+    - main  # Trigger on changes to the main branch
 
 # CLEANUP
 # #######
-.common_rule_pr_to_main: &common_rule_pr_to_main
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
-
-.common_rule_pr_to_dev: &common_rule_pr_to_dev
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
-
-# a YAML anchor reduces repetition
-.cleanup_job: &cleanup_job
+cleanup: &cleanup
   stage: cleanup
-  # only:
-  # - merge_requests
+  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
   script:
-    - echo Cleaned up deployment
-
-# cleanup_success:
-#   stage: cleanup
-#   needs:
-#     - build_prod
-#     - deploy
-#   rules: *common_rule_pr_to_main
-#   when: on_success
-#   <<: *cleanup_job
-#   script:
-#     - echo "Cleanup after successful build or deploy"
-#     - echo "Additional cleanup commands go here"
-
-# cleanup_failure:
-#   stage: cleanup
-#   needs:
-#     - build_prod
-#     - deploy
-#   rules: *common_rule_pr_to_main
-#   when: on_failure
-#   <<: *cleanup_job
-#   script:
-#     - echo "Cleanup after failed build or deploy"
-#     - echo "Additional failure-specific cleanup commands go here"
+    - rm -rf ./*
+  only:
+    - merge_requests
