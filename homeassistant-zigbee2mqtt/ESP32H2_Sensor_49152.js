@@ -10,7 +10,7 @@ const definition = {
   configure: async (device, coordinatorEndpoint) => {
     const endpoint = device.getEndpoint(10);
   },
-  ota: ota.zigbeeOTA,
+  ota: true
 };
 
 module.exports = definition;

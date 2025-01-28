@@ -50,7 +50,7 @@ const definition = {
     e.humidity(),
     e.battery()
   ],
-  ota: ota.zigbeeOTA
+  ota: true
 };
 
 module.exports = definition;

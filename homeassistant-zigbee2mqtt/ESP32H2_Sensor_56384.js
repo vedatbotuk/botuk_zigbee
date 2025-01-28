@@ -49,7 +49,7 @@ const definition = {
     e.temperature(),
     e.battery()
   ],
-  ota: ota.zigbeeOTA
+  ota: true
 };
 
 module.exports = definition;
