@@ -1,2 +1,5 @@
 MODEL_ID,         DEVICE_NAME, COMMENT
 1101110001000000, end_device,  Noel star with temperature sensor with OTA and light sleep
+0100000000000000, router,      Only router device with OTA update
+1111110000000000, end_device,  Temperature and humidity sensor with OTA and light sleep
+1100000000000000, end_device,  Dev device for OTA testing
