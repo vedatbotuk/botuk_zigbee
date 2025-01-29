@@ -105,3 +105,9 @@ SENSOR_WATERLEAK  | 0 or 1
 
 For example use a RFD, which suppert temperature, humidity and light sleep.
 ```110100```
+
+## OTA
+### Header
+OTA Header is defined in ```botuk_index.json```. \
+20 till 51 Bytes are the header bytes. You can check it on ghex.
+
