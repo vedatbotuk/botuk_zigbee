@@ -109,5 +109,7 @@ For example use a RFD, which suppert temperature, humidity and light sleep.
 ## OTA
 ### Header
 OTA Header is defined in ```botuk_index.json```. \
-20 till 51 Bytes are the header bytes. You can check it on ghex.
-
+20 till 51 Bytes are the header bytes. You can check it on ghex. Following is the entry in json file.
+```
+"otaHeaderString": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+```
