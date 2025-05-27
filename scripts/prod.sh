@@ -122,9 +122,8 @@ echo "----------------------------------------"
       echo "    \"imageType\": $MODEL_ID_DECIMAL," >> "$BOTUK_INDEX"
       echo "    \"sha512\": \"$SHA512\"," >> "$BOTUK_INDEX"
       echo "    \"url\": \"https://github.com/vedatbotuk/zigbee-with-esp32h2/releases/download/${FIRMWARE_VERSION}_${VERSION}/${FILE_NAME}\"," >> "$BOTUK_INDEX"
-      echo "    \"otaHeaderString\": \"\"" >> "$BOTUK_INDEX"
+      echo "    \"otaHeaderString\": \"\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\"" >> "$BOTUK_INDEX"
       echo "  }," >> "$BOTUK_INDEX"
-
       # Indicate completion of the build
       echo "Build completed for MODEL_ID: $MODEL_ID"
       echo "----------------------------------------"
