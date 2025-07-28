@@ -11,7 +11,7 @@ stages:
 ############################################
 check_pr_description:
   stage: validate
-  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
   when: always # Ensure this job is never skipped
   only:
     - merge_requests
@@ -71,7 +71,7 @@ restrict_pr_to_main:
 # ########################################
 build_dev:
   stage: build
-  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
   rules:
   - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
     when: always
@@ -85,7 +85,7 @@ build_dev:
 # ###########################################
 build_prod:
   stage: prod
-  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
   rules:
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
       when: always
@@ -109,7 +109,7 @@ build_prod:
 # ######################################
 prepare_job:
   stage: prepare
-  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
   rules: *deploy_rule
   script:
     # Load settings from settings.conf
@@ -128,7 +128,7 @@ prepare_job:
 
 deploy:
   stage: deploy
-  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
   needs:
     - job: prepare_job
       artifacts: true
@@ -150,8 +150,8 @@ deploy:
     # - touch ota/botuk_index2.json
     # - touch ota/botuk_index3.json
     # - pwd
-    # - ls /builds/vedatbotuk/botuk_zigbee
-    # - ls /builds/vedatbotuk/botuk_zigbee/ota
+    # - ls /builds/vedat/botuk_zigbee
+    # - ls /builds/vedat/botuk_zigbee/ota
     # - ls ota
 
     # Create and push tag
@@ -220,7 +220,7 @@ deploy:
 # #######
 cleanup: &cleanup
   stage: cleanup
-  image: registry.gitlab.botuk.de/vedatbotuk/botuk_zigbee
+  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
   script:
     - rm -rf ./*
   only:
