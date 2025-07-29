@@ -66,6 +66,10 @@ check_version:
 restrict_pr_to_main:
   extends: .restrict_pr_to_main
 
+# TODO build docker
+# esp-idf container can build and push
+# This is necassary if we change the esp-idf version.
+
 # Building dev before merge to dev branch
 # This comes from features branch
 # ########################################
