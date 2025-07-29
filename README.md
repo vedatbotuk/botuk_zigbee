@@ -137,3 +137,11 @@ docker build -t registry.gitlab.botuk.de/vedat/docker-images .
 docker push registry.gitlab.botuk.de/vedat/botuk_zigbee
 ```
 
+## Change Version
+In ```setting.conf``` should change after every merge to main.
+
+In ```main/idf_component.yml``` can be changed following libraries.
+- ```esp-zboss-lib```
+- ```esp-zigbee-lib```
+
+In ```Dockerfile``` can be changed esp-idf version.
