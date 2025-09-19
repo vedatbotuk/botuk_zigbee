@@ -123,3 +123,25 @@ ota:
 
 ```
 See full configuration under [hass-zigbee2mqtt-config repo](https://gitlab.botuk.de/vedatbotuk/hass-zigbee2mqtt-config)
+
+## Docker
+Docker container for gitlab ci/cd. This container build source code.
+
+1. Build the Docker Image
+```bash
+docker build -t registry.gitlab.botuk.de/vedat/docker-images .
+```
+
+1. Push the Docker Image
+```bash
+docker push registry.gitlab.botuk.de/vedat/botuk_zigbee
+```
+
+## Change Version
+In ```setting.conf``` should change after every merge to main.
+
+In ```main/idf_component.yml``` can be changed following libraries.
+- ```esp-zboss-lib```
+- ```esp-zigbee-lib```
+
+In ```Dockerfile``` can be changed esp-idf version.
