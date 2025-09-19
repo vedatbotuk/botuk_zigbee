@@ -54,7 +54,7 @@ include:
       filename: "README.md"
   - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/check_version@~latest
     inputs:
-      versionfile: "app/version.txt"
+      versionfile: "settings.conf"
       versionkey: "FIRMWARE_VERSION"
   - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/restrict_pr_to_main@~latest
 
