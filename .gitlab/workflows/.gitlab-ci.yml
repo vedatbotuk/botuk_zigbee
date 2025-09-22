@@ -185,6 +185,13 @@ deploy:
     - echo -e "$RELEASE_NOTES" > release_notes.txt
     - cat release_notes.txt
 
+    # Check if the tag already exists locally and delete it to prevent conflicts
+    - >
+      if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+        echo "Tag $NEW_TAG already exists locally, deleting it first."
+        git tag -d "$NEW_TAG"
+      fi
+
     # Update the remote URL to use the token
     - git tag $NEW_TAG
     - git push https://${CI_PROJECT_NAME}:${RELEASE_TOKEN}@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.git $NEW_TAG
