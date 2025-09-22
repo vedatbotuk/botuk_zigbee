@@ -194,7 +194,7 @@ deploy:
 
     # Update the remote URL to use the token
     - git tag $NEW_TAG
-    - git push https://${CI_PROJECT_NAME}:${RELEASE_TOKEN}@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.git $NEW_TAG
+    - git push "https://gitlab-ci-token:${RELEASE_TOKEN}@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.git" "$NEW_TAG"
 
     # Generate dynamic assets list for all files in the ota directory
     - echo "Generating release assets..."
