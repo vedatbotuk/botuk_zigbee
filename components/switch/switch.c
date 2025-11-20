@@ -19,11 +19,13 @@
 #include "switch.h"
 #include "driver/gpio.h"
 
+// TODO change to switch_driver_set
 void light_driver_set_power(bool power)
 {
   gpio_set_level(GPIO_OUTPUT_PIN, power ? 1 : 0);
 }
 
+// TODO change to switch_driver_init
 esp_err_t light_driver_init(bool power)
 {
   // GPIO configuration for an output
