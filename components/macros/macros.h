@@ -25,7 +25,7 @@
 #endif
 
 #if (SENSOR_MAP >> 7 & 1) == 1
-#define SOME_FEATURE true
+#define BUILTIN_LIGHT true
 #endif
 
 #if (SENSOR_MAP >> 8 & 1) == 1
