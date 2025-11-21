@@ -26,25 +26,26 @@ extern "C"
 #endif
 
 /* light intensity level */
-#define LIGHT_DEFAULT_ON 1
-#define LIGHT_DEFAULT_OFF 0
+#define SWITCH_DEFAULT_ON 1
+#define SWITCH_DEFAULT_OFF 0
 
-#define GPIO_OUTPUT_PIN 12
-#define GPIO_OUTPUT_PIN_SEL (1ULL << GPIO_OUTPUT_PIN) // Bitmas for pin
+#define GPIO_OUTPUT_PIN_1 26
+#define GPIO_OUTPUT_PIN_2 27
+#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_OUTPUT_PIN_1) | (1ULL << GPIO_OUTPUT_PIN_2))
 
   /**
-   * @brief Set light power (on/off).
+   * @brief Set switch power (on/off).
    *
-   * @param  power  The light power to be set
+   * @param  power  The switch power to be set
    */
-  void light_driver_set_power(bool power);
+  void switch_driver_set_power(bool power);
 
   /**
-   * @brief light driver init, be invoked where you want to use light
+   * @brief switch driver init, be invoked where you want to use switch
    *
    * @param power power on/off
    */
-  esp_err_t light_driver_init(bool power);
+  esp_err_t switch_driver_init(bool power);
 
 #ifdef __cplusplus
 } // extern "C"
