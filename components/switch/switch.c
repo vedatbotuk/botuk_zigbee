@@ -19,14 +19,15 @@
 #include "switch.h"
 #include "driver/gpio.h"
 
-// TODO change to switch_driver_set
-void light_driver_set_power(bool power)
+void switch_driver_set_power(bool power)
 {
-  gpio_set_level(GPIO_OUTPUT_PIN, power ? 1 : 0);
+  int level = power ? 1 : 0;
+  gpio_set_level(GPIO_OUTPUT_PIN_1, level);
+  gpio_set_level(GPIO_OUTPUT_PIN_2, level);
 }
 
 // TODO change to switch_driver_init
-esp_err_t light_driver_init(bool power)
+esp_err_t switch_driver_init(bool power)
 {
   // GPIO configuration for an output
   gpio_config_t io_conf = {
@@ -37,7 +38,9 @@ esp_err_t light_driver_init(bool power)
       .pull_up_en = GPIO_PULLUP_DISABLE     // Disable pull-up
   };
 
-  gpio_config(&io_conf);               // Apply the configuration
-  gpio_sleep_sel_dis(GPIO_OUTPUT_PIN); // Disable sleep select
+  gpio_config(&io_conf); // Apply the configuration
+  gpio_sleep_sel_dis(GPIO_OUTPUT_PIN_1);
+  gpio_sleep_sel_dis(GPIO_OUTPUT_PIN_2);
+  switch_driver_set_power(power);
   return ESP_OK;
 }

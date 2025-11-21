@@ -167,7 +167,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_power(light_state);
+                switch_driver_set_power(light_state);
             }
         }
     }
@@ -417,7 +417,7 @@ void app_main(void)
     zb_deep_sleep_init();
 #endif
 #ifdef SWITCH_FEATURES
-    ESP_LOGI(TAG, "Deferred driver initialization %s", light_driver_init(LIGHT_DEFAULT_OFF) ? "failed" : "successful");
+    ESP_LOGI(TAG, "Deferred driver initialization %s", switch_driver_init(SWITCH_DEFAULT_OFF) ? "failed" : "successful");
 #endif
 // TODO ESP_LOGI above does not work.
 #if defined BUILTIN_LIGHT
