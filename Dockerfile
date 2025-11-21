@@ -5,7 +5,7 @@ FROM ubuntu:latest
 ENV HOME=/root
 
 # Define ARGs for maintainability
-ARG ESP_IDF_VERSION=5.3.2
+ARG ESP_IDF_VERSION=5.5.1
 ARG ESP_IDF_ZIP_URL=https://dl.espressif.com/github_assets/espressif/esp-idf/releases/download/v${ESP_IDF_VERSION}/esp-idf-v${ESP_IDF_VERSION}.zip
 ARG RELEASE_CLI_URL=https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64
 
@@ -28,10 +28,11 @@ RUN ${HOME}/esp/esp-idf/install.sh esp32h2
 
 # Set environment variables for ESP-IDF
 ENV IDF_PATH=${HOME}/esp/esp-idf
-ENV PATH="${IDF_PATH}/tools:${PATH}"
+ENV IDF_PATH_FORCE=1
+ENV PATH=${IDF_PATH}/tools:${PATH}
 
 # Install Zigpy with ESP-IDF's Python environment
-RUN . ${IDF_PATH}/export.sh && pip3 install zigpy
+RUN . ${IDF_PATH}/export.sh && pip install zigpy
 
 # Copy and install self-signed certificate
 COPY ./botuk.crt /usr/local/share/ca-certificates/
