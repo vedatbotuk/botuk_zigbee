@@ -107,14 +107,14 @@ void measure_battery()
         connected = connection_status();
         if (connected)
         {
-            get_battery_level();
+            read_battery_level();
         }
         else
         {
             ESP_LOGW(TAG, "Device is not connected! Could not measure the battery level");
         }
 #if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(600000)); // 900000 ms = 15 minutes
+        vTaskDelay(pdMS_TO_TICKS(60000)); // 900000 ms = 15 minutes
 #else
         vTaskDelay(pdMS_TO_TICKS(60000)); // 60000 ms = 1 minutes
 #endif
@@ -140,6 +140,24 @@ void waterleak_loop()
     }
 }
 #endif
+#endif
+
+#if defined BUILTIN_LIGHT
+static TaskHandle_t flash_task_handle = NULL;
+// void flash_task(void *arg)
+// {
+//     while (1)
+//     {
+//         // light_driver_set_power(true);
+//         light_driver_set_level(20);
+
+//         vTaskDelay(pdMS_TO_TICKS(500));
+
+//         // light_driver_set_power(false);
+//         light_driver_set_level(0);
+//         vTaskDelay(pdMS_TO_TICKS(500));
+//     }
+// }
 #endif
 
 #if defined SWITCH_FEATURES || defined BUILTIN_LIGHT
@@ -178,15 +196,31 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         switch (message->info.cluster)
         {
         case ESP_ZB_ZCL_CLUSTER_ID_ON_OFF:
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+
                 ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_power(light_state);
-            }
-            else
-            {
-                ESP_LOGW(TAG, "On/Off cluster data: attribute(0x%x), type(0x%x)", message->attribute.id, message->attribute.data.type);
+
+                if (light_state)
+                {
+                    // Start flashing if not already running
+                    if (flash_task_handle == NULL)
+                    {
+                        xTaskCreate(flash_task, "flash_task", 2048, NULL, 5, &flash_task_handle);
+                    }
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                    }
+                    light_driver_set_power(false); // ensure LED is off
+                }
             }
             break;
         case ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL:
@@ -317,7 +351,8 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_init(&zb_nwk_cfg);
 #ifdef LIGHT_SLEEP
     esp_zb_sleep_set_threshold(2000);
-    ESP_LOGI(TAG, "Enable LIGHT_SLEEP");
+    light_level
+        ESP_LOGI(TAG, "Enable LIGHT_SLEEP");
 #endif
 #ifdef ROUTER_DEVICE
     esp_zb_set_tx_power(20);
