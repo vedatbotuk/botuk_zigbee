@@ -190,7 +190,8 @@ endif()
 
 # Check the seventh number of MODEL_ID
 string(SUBSTRING ${MODEL_ID} 6 1 SEVENTH_NUM)
-if(SEVENTH_NUM EQUAL "1")
+string(SUBSTRING ${MODEL_ID} 4 1 FIFTH_NUM)
+if(SEVENTH_NUM EQUAL "1" OR FIFTH_NUM EQUAL "1")
     list(APPEND SET_SDKCONFIG_DEFAULTS "sdkconfig_defaults/sdkconfig.deep_sleep")
     message(STATUS "Appending sdkconfig.deep_sleep to SET_SDKCONFIG_DEFAULTS")
 endif()

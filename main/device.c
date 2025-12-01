@@ -107,14 +107,14 @@ void measure_battery()
         connected = connection_status();
         if (connected)
         {
-            read_battery_level();
+            get_battery_level();
         }
         else
         {
             ESP_LOGW(TAG, "Device is not connected! Could not measure the battery level");
         }
 #if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(60000)); // 900000 ms = 15 minutes
+        vTaskDelay(pdMS_TO_TICKS(600000)); // 900000 ms = 15 minutes
 #else
         vTaskDelay(pdMS_TO_TICKS(60000)); // 60000 ms = 1 minutes
 #endif

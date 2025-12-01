@@ -76,7 +76,7 @@ static uint8_t calc_battery_percentage(int adc)
 }
 #endif
 
-esp_err_t get_battery_level(void)
+esp_err_t read_battery_level(void)
 {
 #if !defined SIMULATE
     voltage_calculate_init();
@@ -100,4 +100,10 @@ esp_err_t get_battery_level(void)
     zb_report_battery_level();
 #endif
     return ESP_OK;
+}
+
+esp_err_t get_battery_level()
+{
+    ESP_LOGI(TAG_VOL, "Get Battery level: %d %%", battery_lev);
+    return battery_lev;
 }

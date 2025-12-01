@@ -23,6 +23,7 @@ extern "C"
 {
 #endif
 
+    esp_err_t read_battery_level();
     esp_err_t get_battery_level();
 
 #ifdef __cplusplus

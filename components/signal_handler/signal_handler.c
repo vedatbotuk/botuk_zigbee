@@ -92,7 +92,7 @@ static void get_sensor_data()
     check_waterleak();
 #endif
 #ifdef BATTERY_FEATURES
-    get_battery_level();
+    read_battery_level();
 #endif
 }
 #endif
