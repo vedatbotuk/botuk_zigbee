@@ -62,15 +62,16 @@ if(EXISTS ${SETTINGS_FILE})
     add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
     add_definitions(-DED_KEEP_ALIVE=${ED_KEEP_ALIVE})
     if(TESTING EQUAL "1")
-        if(SIMULATE EQUAL "1")
-            add_definitions(-DSIMULATE=${SIMULATE})
-            message(STATUS "Simulating active, dummy payload will be created.")               
-        endif()
+        add_definitions(-DTESTING=${TESTING})
         add_definitions(-DZIGBEE_CHANNEL=${SIMULATE_ZIGBEE_CHANNEL})
     else()
         add_definitions(-DZIGBEE_CHANNEL=${ZIGBEE_CHANNEL})
     endif()
-
+    
+    if(SIMULATE EQUAL "1")
+        add_definitions(-DSIMULATE=${SIMULATE})
+        message(STATUS "Simulating active, dummy payload will be created.")               
+    endif()
 
     add_definitions(-DDEEP_SLEEP_TIME=${DEEP_SLEEP_TIME})
 
