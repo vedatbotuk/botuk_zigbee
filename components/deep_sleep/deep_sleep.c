@@ -93,7 +93,7 @@ void disable_all_gpios_safe(void)
 static void s_oneshot_timer_callback(void *arg)
 {
     /* Enter deep sleep */
-    ESP_LOGI(TAG_SLEEP, "Enter deep sleep for %dmin\n", DEEP_SLEEP_TIME);
+    ESP_LOGI(TAG_SLEEP, "Enter deep sleep for %dmin\n", real_deep_sleep_time);
     gettimeofday(&s_sleep_enter_time, NULL);
     esp_deep_sleep_start();
 }
@@ -130,7 +130,7 @@ void zb_deep_sleep_init()
         break;
     }
 
-    const int wakeup_time_sec = DEEP_SLEEP_TIME * 60;
-    ESP_LOGI(TAG_SLEEP, "Enabling timer wakeup, %dmin", DEEP_SLEEP_TIME);
+    const int wakeup_time_sec = real_deep_sleep_time * 60;
+    ESP_LOGI(TAG_SLEEP, "Enabling timer wakeup, %dmin", real_deep_sleep_time);
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(wakeup_time_sec * 1000000));
 }
