@@ -29,6 +29,7 @@
 #include "freertos/task.h"
 #include "esp_pm.h"
 #include "esp_private/esp_clk.h"
+#include "driver/gpio.h"
 
 static const char *TAG_SLEEP = "ESP_ZB_DEEP_SLEEP";
 static RTC_DATA_ATTR struct timeval s_sleep_enter_time;
@@ -39,7 +40,56 @@ static esp_timer_handle_t s_oneshot_timer;
 // static const int real_deep_sleep_time = DEEP_SLEEP_TIME;
 // #endif
 
+static const int protected_pins[] = {
+    // common flash/psram pins (ESP32 family); conservative for ESP32-H2 modules:
+    6, 7, 8, 9, 10, 11,
+    15, 16, 17, 18, 19, 20, 21};
+
 /********************* Define functions **************************/
+static bool is_protected(int pin)
+{
+    for (size_t i = 0; i < sizeof(protected_pins) / sizeof(protected_pins[0]); ++i)
+    {
+        if (protected_pins[i] == pin)
+            return true;
+    }
+    return false;
+}
+
+void disable_all_gpios_safe(void)
+{
+    for (int pin = 0; pin < GPIO_NUM_MAX; ++pin)
+    {
+        if (!GPIO_IS_VALID_GPIO(pin))
+        {
+            continue; // not a usable gpio on this chip
+        }
+        if (is_protected(pin))
+        {
+            // Skip pins that are likely wired to flash or are reserved
+            continue;
+        }
+
+        // Disable any pad-hold (in case enabled before)
+        gpio_hold_dis(pin);
+
+        // Make it input, disable pulls -> hi-z
+        gpio_set_direction(pin, GPIO_MODE_INPUT);
+// If your IDF supports gpio_set_pull_mode use it:
+#if defined(GPIO_PULLUP_ONLY) || defined(GPIO_FLOATING)
+        // some IDF versions:
+        gpio_set_pull_mode(pin, GPIO_FLOATING);
+#else
+        // fallback to explicit disable
+        gpio_pullup_dis(pin);
+        gpio_pulldown_dis(pin);
+#endif
+
+        // Optionally reset pin config to default (safer on some IDF versions)
+        // gpio_reset_pin(pin); // DO NOT call this if you're not 100% sure it's safe for your board
+    }
+}
+
 static void s_oneshot_timer_callback(void *arg)
 {
     /* Enter deep sleep */
@@ -50,6 +100,8 @@ static void s_oneshot_timer_callback(void *arg)
 
 void start_deep_sleep()
 {
+    // Disable all GPIOs before sleeping
+    disable_all_gpios_safe();
     ESP_ERROR_CHECK(esp_timer_start_once(s_oneshot_timer, before_deep_sleep_time_sec * 1000000));
 }
 
