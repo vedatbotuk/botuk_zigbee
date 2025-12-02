@@ -99,6 +99,10 @@ void measure_temp_hum()
 }
 #endif
 
+#if defined BUILTIN_LIGHT
+static TaskHandle_t flash_task_handle = NULL;
+#endif
+
 #if defined BATTERY_FEATURES && !defined DEEP_SLEEP
 void measure_battery()
 {
@@ -109,19 +113,29 @@ void measure_battery()
         {
             read_battery_level();
             uint8_t bat_lev = get_battery_level();
+#if defined SWITCH_FEATURES || BUILTIN_LIGHT
+            if (bat_lev < 10)
+            {
+                ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
+#if defined SWITCH_FEATURES
+                switch_driver_set_power(0);
+#endif
+#if defined BUILTIN_LIGHT
+                // Stop flashing
+                if (flash_task_handle != NULL)
+                {
+                    vTaskDelete(flash_task_handle);
+                    flash_task_handle = NULL;
+                }
+                light_driver_set_power(false); // ensure LED is off
+#endif
+            }
+#endif
             if (bat_lev < 5)
             {
                 ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
                 start_deep_sleep();
             }
-#ifdef SWITCH_FEATURES
-            if (bat_lev < 10)
-            {
-                ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
-                switch_driver_set_power(0);
-            }
-#endif
-            // TODO: ADD builtin light turn off on low battery
         }
         else
         {
@@ -154,24 +168,6 @@ void waterleak_loop()
     }
 }
 #endif
-#endif
-
-#if defined BUILTIN_LIGHT
-static TaskHandle_t flash_task_handle = NULL;
-// void flash_task(void *arg)
-// {
-//     while (1)
-//     {
-//         // light_driver_set_power(true);
-//         light_driver_set_level(20);
-
-//         vTaskDelay(pdMS_TO_TICKS(500));
-
-//         // light_driver_set_power(false);
-//         light_driver_set_level(0);
-//         vTaskDelay(pdMS_TO_TICKS(500));
-//     }
-// }
 #endif
 
 #if defined SWITCH_FEATURES || defined BUILTIN_LIGHT
@@ -210,9 +206,9 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     switch_driver_set_power(light_state);
                 }
 #else
-                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                switch_driver_set_power(light_state);
+                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                    switch_driver_set_power(light_state);
 #endif
             }
         }
@@ -490,7 +486,7 @@ void app_main(void)
         // light_driver_init(LIGHT_DEFAULT_OFF);
         is_inited = true;
     }
-    // TODO: light_driver_set_power off 
+    // TODO: light_driver_set_power off
     light_driver_init(LIGHT_DEFAULT_OFF);
 
     ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");

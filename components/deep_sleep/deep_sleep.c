@@ -34,11 +34,11 @@
 static const char *TAG_SLEEP = "ESP_ZB_DEEP_SLEEP";
 static RTC_DATA_ATTR struct timeval s_sleep_enter_time;
 static esp_timer_handle_t s_oneshot_timer;
-// #if !defined DEEP_SLEEP
-// static const int real_deep_sleep_time = DEEP_SLEEP_TIME * 6;
-// #else
-// static const int real_deep_sleep_time = DEEP_SLEEP_TIME;
-// #endif
+#if !defined DEEP_SLEEP
+static const int real_deep_sleep_time = DEEP_SLEEP_TIME * 6;
+#else
+static const int real_deep_sleep_time = DEEP_SLEEP_TIME;
+#endif
 
 static const int protected_pins[] = {
     // common flash/psram pins (ESP32 family); conservative for ESP32-H2 modules:
