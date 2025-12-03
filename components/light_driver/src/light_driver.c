@@ -92,13 +92,11 @@ void flash_task(void *arg)
 {
     while (1)
     {
-        // light_driver_set_power(true);
-        light_driver_set_level(20);
+        light_driver_set_level(255);
 
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(50));
 
-        // light_driver_set_power(false);
         light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
