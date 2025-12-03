@@ -324,8 +324,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_init(&zb_nwk_cfg);
 #ifdef LIGHT_SLEEP
     esp_zb_sleep_set_threshold(2000);
-    light_level
-        ESP_LOGI(TAG, "Enable LIGHT_SLEEP");
+    ESP_LOGI(TAG, "Enable LIGHT_SLEEP");
 #endif
 #ifdef ROUTER_DEVICE
     esp_zb_set_tx_power(20);
