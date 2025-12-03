@@ -35,7 +35,7 @@
 #include "light_sleep.h"
 #endif
 
-#ifdef DEEP_SLEEP
+#if defined DEEP_SLEEP || BATTERY_FEATURES
 #include "deep_sleep.h"
 #endif
 
@@ -99,7 +99,11 @@ void measure_temp_hum()
 }
 #endif
 
-#ifdef BATTERY_FEATURES
+#if defined BUILTIN_LIGHT
+static TaskHandle_t flash_task_handle = NULL;
+#endif
+
+#if defined BATTERY_FEATURES && !defined DEEP_SLEEP
 void measure_battery()
 {
     while (1)
@@ -108,15 +112,39 @@ void measure_battery()
         if (connected)
         {
             read_battery_level();
+            uint8_t bat_lev = get_battery_level();
+#if defined SWITCH_FEATURES || BUILTIN_LIGHT
+            if (bat_lev < 10)
+            {
+                ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
+#if defined SWITCH_FEATURES
+                switch_driver_set_power(0);
+#endif
+#if defined BUILTIN_LIGHT
+                // Stop flashing
+                if (flash_task_handle != NULL)
+                {
+                    vTaskDelete(flash_task_handle);
+                    flash_task_handle = NULL;
+                }
+                light_driver_set_power(false); // ensure LED is off
+#endif
+            }
+#endif
+            if (bat_lev < 5)
+            {
+                ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
+                start_deep_sleep();
+            }
         }
         else
         {
             ESP_LOGW(TAG, "Device is not connected! Could not measure the battery level");
         }
 #if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(60000)); // 900000 ms = 15 minutes
+        vTaskDelay(pdMS_TO_TICKS(600000)); // 900000 ms = 15 minutes
 #else
-        vTaskDelay(pdMS_TO_TICKS(60000)); // 60000 ms = 1 minutes
+        vTaskDelay(pdMS_TO_TICKS(10000)); // 60000 ms = 1 minutes
 #endif
     }
 }
@@ -168,9 +196,23 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         {
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
-                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                switch_driver_set_power(light_state);
+#if defined BATTERY_FEATURES
+                if (get_battery_level() < 10)
+                {
+                    ESP_LOGW(TAG, "Battery level is too low to change the switch state false.");
+                    switch_driver_set_power(0);
+                }
+                else
+                {
+                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                    switch_driver_set_power(light_state);
+                }
+#else
+                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                    switch_driver_set_power(light_state);
+#endif
             }
         }
     }
@@ -420,7 +462,7 @@ void app_main(void)
 #ifdef LIGHT_SLEEP
     ESP_ERROR_CHECK(esp_zb_power_save_init());
 #endif
-#ifdef DEEP_SLEEP
+#if defined DEEP_SLEEP || BATTERY_FEATURES
     zb_deep_sleep_init();
 #endif
 #ifdef SWITCH_FEATURES
@@ -431,9 +473,12 @@ void app_main(void)
     static bool is_inited = false;
     if (!is_inited)
     {
-        light_driver_init(LIGHT_DEFAULT_OFF);
+        // light_driver_init(LIGHT_DEFAULT_OFF);
         is_inited = true;
     }
+    // TODO: light_driver_set_power off
+    light_driver_init(LIGHT_DEFAULT_OFF);
+
     ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");
 #endif
 #if !defined DEEP_SLEEP
