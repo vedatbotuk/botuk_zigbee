@@ -12,10 +12,10 @@
  * CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
 #include "esp_log.h"
 #include "led_strip.h"
 #include "light_driver.h"
+#include "freertos/FreeRTOS.h"
 
 static led_strip_handle_t s_led_strip;
 static uint8_t s_red = 255, s_green = 255, s_blue = 255, s_level = 255;
@@ -86,4 +86,19 @@ void light_driver_init(bool power)
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&led_strip_conf, &rmt_conf, &s_led_strip));
 
     light_driver_set_power(power);
+}
+
+void flash_task(void *arg)
+{
+    while (1)
+    {
+        // light_driver_set_power(true);
+        light_driver_set_level(20);
+
+        vTaskDelay(pdMS_TO_TICKS(500));
+
+        // light_driver_set_power(false);
+        light_driver_set_level(0);
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
 }

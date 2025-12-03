@@ -18,7 +18,7 @@
 #include "macros.h"
 #include "esp_zigbee_core.h"
 #include "esp_check.h"
-#ifdef DEEP_SLEEP
+#if defined DEEP_SLEEP || BATTERY_FEATURES
 #include "temperature_humidity.h"
 #include "battery_read.h"
 #include "waterleak.h"
@@ -92,7 +92,7 @@ static void get_sensor_data()
     check_waterleak();
 #endif
 #ifdef BATTERY_FEATURES
-    get_battery_level();
+    read_battery_level();
 #endif
 }
 #endif
@@ -116,10 +116,19 @@ static void handle_successful_join()
              extended_pan_id[7], extended_pan_id[6], extended_pan_id[5], extended_pan_id[4],
              extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
              esp_zb_get_pan_id(), esp_zb_get_current_channel(), esp_zb_get_short_address());
+#if defined DEEP_SLEEP || BATTERY_FEATURES
 #ifdef DEEP_SLEEP
     get_sensor_data();
     ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
     start_deep_sleep();
+#else
+    read_battery_level();
+    if (get_battery_level() < 5)
+    {
+        ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
+        start_deep_sleep();
+    }
+#endif
 #endif
 }
 
@@ -150,10 +159,19 @@ void create_signal_handler(esp_zb_app_signal_t signal_struct)
             else
             {
                 conn = true;
+#if defined DEEP_SLEEP || BATTERY_FEATURES
 #ifdef DEEP_SLEEP
                 get_sensor_data();
                 ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
                 start_deep_sleep();
+#else
+                read_battery_level();
+                if (get_battery_level() < 5)
+                {
+                    ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
+                    start_deep_sleep();
+                }
+#endif
 #endif
                 ESP_LOGI(TAG_SIGNAL_HANDLER, "Device rebooted");
                 read_server_time();
@@ -189,7 +207,7 @@ void create_signal_handler(esp_zb_app_signal_t signal_struct)
             esp_zb_factory_reset();
         }
         break;
-#if defined LIGHT_SLEEP || DEEP_SLEEP
+#if defined LIGHT_SLEEP || DEEP_SLEEP || BATTERY_FEATURES
     case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
         ESP_LOGI(TAG_SIGNAL_HANDLER, "Zigbee can sleep");
 #ifdef LIGHT_SLEEP

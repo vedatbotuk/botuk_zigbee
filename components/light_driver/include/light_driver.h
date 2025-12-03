@@ -120,6 +120,11 @@ void light_driver_set_color_xy(uint16_t color_current_x, uint16_t color_current_
 */
 void light_driver_set_color_hue_sat(uint8_t hue, uint8_t sat);
 
+/* @brief Flash task for light driver
+* @param  arg  The argument to be set
+*/
+void flash_task(void *arg);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
