@@ -170,10 +170,6 @@ void waterleak_loop()
 #endif
 #endif
 
-#if defined BUILTIN_LIGHT
-static TaskHandle_t flash_task_handle = NULL;
-#endif
-
 #if defined SWITCH_FEATURES || defined BUILTIN_LIGHT
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
