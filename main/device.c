@@ -176,7 +176,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     esp_err_t ret = ESP_OK;
     bool light_state = 0;
 #ifdef BUILTIN_LIGHT
-    uint8_t light_level = 0;
     uint16_t light_color_x = 0;
     uint16_t light_color_y = 0;
 #endif
@@ -271,18 +270,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             }
             light_driver_set_color_xy(light_color_x, light_color_y);
             break;
-        case ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8)
-            {
-                light_level = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_level;
-                light_driver_set_level((uint8_t)light_level);
-                ESP_LOGI(TAG, "Light level changes to %d", light_level);
-            }
-            else
-            {
-                ESP_LOGW(TAG, "Level Control cluster data: attribute(0x%x), type(0x%x)", message->attribute.id, message->attribute.data.type);
-            }
-            break;
         default:
             ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
         }
@@ -375,8 +362,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_init(&zb_nwk_cfg);
 #ifdef LIGHT_SLEEP
     esp_zb_sleep_set_threshold(2000);
-    light_level
-        ESP_LOGI(TAG, "Enable LIGHT_SLEEP");
+    ESP_LOGI(TAG, "Enable LIGHT_SLEEP");
 #endif
 #ifdef ROUTER_DEVICE
     esp_zb_set_tx_power(20);
