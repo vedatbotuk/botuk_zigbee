@@ -130,7 +130,7 @@ void zb_deep_sleep_init()
         break;
     }
 
-    const int wakeup_time_sec = real_deep_sleep_time * 60;
+    const uint32_t wakeup_time_sec = real_deep_sleep_time * 60;
     ESP_LOGI(TAG_SLEEP, "Enabling timer wakeup, %dmin", real_deep_sleep_time);
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(wakeup_time_sec * 1000000));
 }
