@@ -1,7 +1,7 @@
 MODEL_ID,         DEVICE_NAME, COMMENT
 1101110001000000, end_device,  Noel star with temperature sensor with OTA and light sleep
-0100000000000000, router,      Only router device with OTA update
+0100000000000000, router,      Only router device with OTA update, J5 jumper should be connected by ESP32-H2-DevKitM-1
 1111110000000000, end_device,  Temperature and humidity sensor with OTA and light sleep
 1100000000000000, end_device,  Dev device for OTA testing
-1000000010000000, end_device,  Flashing Device for feedback and alarm
-0100000010000000, router,      flashing router device with OTA update
+1100110010000000, end_device,  Flashing Device for feedback and alarm, J5 jumper should be connected by ESP32-H2-DevKitM-1, otherwise built-in light does not work
+0100000010000000, router,      flashing router device with OTA update, J5 jumper should be connected by ESP32-H2-DevKitM-1
