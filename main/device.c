@@ -47,7 +47,7 @@
 #include "waterleak.h"
 #endif
 
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#ifdef DHT22
 #include "temperature_humidity.h"
 #endif
 
@@ -71,7 +71,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 }
 
 #if !defined DEEP_SLEEP
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#ifdef DHT22
 void measure_temp_hum()
 {
     while (1)
@@ -79,10 +79,8 @@ void measure_temp_hum()
         connected = connection_status();
         if (connected)
         {
-#ifdef TEMPERATURE_FEATURES
+#ifdef DHT22
             check_temperature();
-#endif
-#ifdef HUMIDITY_FEATURES
             check_humidity();
 #endif
         }
@@ -377,15 +375,11 @@ static void esp_zb_task(void *pvParameters)
     create_basic_cluster(esp_zb_cluster_list);
     create_identify_cluster(esp_zb_cluster_list);
     create_time_cluster(esp_zb_cluster_list);
-#ifdef TEMPERATURE_FEATURES
-    create_temp_cluster(esp_zb_cluster_list);
-    ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
-
-#endif
-#ifdef HUMIDITY_FEATURES
+#ifdef DHT22
     create_hum_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_HUMIDITY Cluster");
-
+    create_temp_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
 #endif
 #ifdef WATERLEAK_FEATURES
     create_waterleak_cluster(esp_zb_cluster_list);
@@ -479,7 +473,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");
 #endif
 #if !defined DEEP_SLEEP
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#if defined DHT22
     xTaskCreate(measure_temp_hum, "measure_temp_hum", 4096, NULL, 5, NULL);
 #endif
 #ifdef BATTERY_FEATURES
