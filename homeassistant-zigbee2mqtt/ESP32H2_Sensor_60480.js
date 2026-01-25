@@ -6,8 +6,8 @@ const ota = require('zigbee-herdsman-converters/lib/ota');
 const e = exposes.presets;
 
 const definition = {
-  zigbeeModel: ['56384'],
-  model: '56384',
+  zigbeeModel: ['60480'],
+  model: '60480',
   vendor: 'Botuk',
   description: 'Simple on/off light device',
   fromZigbee: [

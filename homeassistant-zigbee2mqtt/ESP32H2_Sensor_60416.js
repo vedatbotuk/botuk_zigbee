@@ -6,8 +6,8 @@ const ota = require('zigbee-herdsman-converters/lib/ota');
 const e = exposes.presets;
 
 const definition = {
-  zigbeeModel: ['64512'],
-  model: '64512',
+  zigbeeModel: ['60416'],
+  model: '60416',
   vendor: 'Botuk',
   description: 'end device Temp/Hum Sensor with ota',
   fromZigbee: [
@@ -38,9 +38,9 @@ const definition = {
 
     // Configure reporting for temperature, humidity, and battery
     try {
-      await reporting.temperature(endpoint, { min: 30, max: 120, change: 10 });
-      await reporting.humidity(endpoint, { min: 30, max: 120, change: 10 });
-      await reporting.batteryPercentageRemaining(endpoint, { min: 60, max: 300, change: 1 });
+      await reporting.temperature(endpoint, { min: 300, max: 3600, change: 100 });
+      await reporting.humidity(endpoint, { min: 300, max: 3600, change: 100 });
+      await reporting.batteryPercentageRemaining(endpoint, { min: 3600, max: 65000, change: 1 });
     } catch (error) {
       // Handle reporting configuration failure silently
     }
