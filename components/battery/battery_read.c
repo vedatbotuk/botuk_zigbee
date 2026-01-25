@@ -28,6 +28,8 @@
 #include "macros.h"
 
 const static char *TAG_VOL = "VOLTAGE";
+static uint8_t battery_lev;
+static uint8_t battery_vol;
 
 #if !defined SIMULATE
 
@@ -46,8 +48,6 @@ const static char *TAG_VOL = "VOLTAGE";
 
 static adc_oneshot_unit_handle_t adc1_handle;
 static int adc_raw[2][10];
-static uint8_t battery_lev;
-static uint8_t battery_vol;
 
 static esp_err_t voltage_calculate_init(void)
 {
@@ -76,7 +76,7 @@ static uint8_t calc_battery_percentage(int adc)
 }
 #endif
 
-esp_err_t get_battery_level(void)
+esp_err_t read_battery_level(void)
 {
 #if !defined SIMULATE
     voltage_calculate_init();
@@ -90,8 +90,8 @@ esp_err_t get_battery_level(void)
     ESP_LOGI(TAG_VOL, "Battery level: %d %%", battery_lev);
     ESP_LOGI(TAG_VOL, "Battery voltage: %d mV", battery_vol);
 #else
-    int battery_lev = random_utils_generate(101); // Generate a random temperature between 0 and 100
-    int battery_vol = random_utils_generate(4);   // Generate a random temperature between 0 and 3
+    battery_lev = random_utils_generate(101); // Generate a random temperature between 0 and 100
+    battery_vol = random_utils_generate(4);   // Generate a random temperature between 0 and 3
     ESP_LOGI(TAG_VOL, "SIMULATE Battery level: %d %%", battery_lev);
     ESP_LOGI(TAG_VOL, "SIMULATE Battery voltage: %d mV", battery_vol);
 #endif
@@ -100,4 +100,10 @@ esp_err_t get_battery_level(void)
     zb_report_battery_level();
 #endif
     return ESP_OK;
+}
+
+esp_err_t get_battery_level()
+{
+    ESP_LOGI(TAG_VOL, "Get Battery level: %d %%", battery_lev);
+    return battery_lev;
 }

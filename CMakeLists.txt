@@ -62,15 +62,16 @@ if(EXISTS ${SETTINGS_FILE})
     add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
     add_definitions(-DED_KEEP_ALIVE=${ED_KEEP_ALIVE})
     if(TESTING EQUAL "1")
-        if(SIMULATE EQUAL "1")
-            add_definitions(-DSIMULATE=${SIMULATE})
-            message(STATUS "Simulating active, dummy payload will be created.")               
-        endif()
+        add_definitions(-DTESTING=${TESTING})
         add_definitions(-DZIGBEE_CHANNEL=${SIMULATE_ZIGBEE_CHANNEL})
     else()
         add_definitions(-DZIGBEE_CHANNEL=${ZIGBEE_CHANNEL})
     endif()
-
+    
+    if(SIMULATE EQUAL "1")
+        add_definitions(-DSIMULATE=${SIMULATE})
+        message(STATUS "Simulating active, dummy payload will be created.")               
+    endif()
 
     add_definitions(-DDEEP_SLEEP_TIME=${DEEP_SLEEP_TIME})
 
@@ -190,7 +191,8 @@ endif()
 
 # Check the seventh number of MODEL_ID
 string(SUBSTRING ${MODEL_ID} 6 1 SEVENTH_NUM)
-if(SEVENTH_NUM EQUAL "1")
+string(SUBSTRING ${MODEL_ID} 4 1 FIFTH_NUM)
+if(SEVENTH_NUM EQUAL "1" OR FIFTH_NUM EQUAL "1")
     list(APPEND SET_SDKCONFIG_DEFAULTS "sdkconfig_defaults/sdkconfig.deep_sleep")
     message(STATUS "Appending sdkconfig.deep_sleep to SET_SDKCONFIG_DEFAULTS")
 endif()

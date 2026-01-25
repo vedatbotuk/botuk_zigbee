@@ -23,6 +23,7 @@
 #include "esp_ota_ops.h"
 #include <stdio.h>
 #include <string.h>
+#include "ha/esp_zigbee_ha_standard.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -185,6 +186,28 @@ void create_ota_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     };
     esp_zb_ota_cluster_add_attr(esp_zb_ota_client_cluster, ESP_ZB_ZCL_ATTR_OTA_UPGRADE_CLIENT_DATA_ID, (void *)&variable_config);
     esp_zb_cluster_list_add_ota_cluster(esp_zb_cluster_list, esp_zb_ota_client_cluster, ESP_ZB_ZCL_CLUSTER_CLIENT_ROLE);
+}
+
+void create_builtin_light_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
+{
+    esp_zb_on_off_cluster_cfg_t on_off_cfg =
+        {
+            .on_off = ESP_ZB_ZCL_ON_OFF_ON_OFF_DEFAULT_VALUE,
+        };
+    esp_zb_color_cluster_cfg_t color_cfg =
+        {
+            .current_x = ESP_ZB_ZCL_COLOR_CONTROL_CURRENT_X_DEF_VALUE,
+            .current_y = ESP_ZB_ZCL_COLOR_CONTROL_CURRENT_Y_DEF_VALUE,
+            .color_mode = ESP_ZB_ZCL_COLOR_CONTROL_COLOR_MODE_DEFAULT_VALUE,
+            .options = ESP_ZB_ZCL_COLOR_CONTROL_OPTIONS_DEFAULT_VALUE,
+            .enhanced_color_mode = ESP_ZB_ZCL_COLOR_CONTROL_ENHANCED_COLOR_MODE_DEFAULT_VALUE,
+            .color_capabilities = 0x0008,
+        };
+    esp_zb_attribute_list_t *esp_zb_on_off_cluster = esp_zb_on_off_cluster_create(&on_off_cfg);
+    esp_zb_attribute_list_t *esp_zb_color_cluster = esp_zb_color_control_cluster_create(&color_cfg);
+
+    esp_zb_cluster_list_add_on_off_cluster(esp_zb_cluster_list, esp_zb_on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_color_control_cluster(esp_zb_cluster_list, esp_zb_color_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
 void create_light_switch_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)

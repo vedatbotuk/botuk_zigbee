@@ -35,7 +35,7 @@
 #include "light_sleep.h"
 #endif
 
-#ifdef DEEP_SLEEP
+#if defined DEEP_SLEEP || BATTERY_FEATURES
 #include "deep_sleep.h"
 #endif
 
@@ -51,8 +51,13 @@
 #include "temperature_humidity.h"
 #endif
 
-#ifdef SWITCH_FEATURES
+#if defined SWITCH_FEATURES
 #include "switch.h"
+#endif
+
+#ifdef BUILTIN_LIGHT
+#include "ha/esp_zigbee_ha_standard.h"
+#include "light_driver.h"
 #endif
 
 static const char *TAG = "DEVICE";
@@ -86,7 +91,7 @@ void measure_temp_hum()
             ESP_LOGW(TAG, "Device is not connected! Could not measure the temperature and humidity");
         }
 #if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(60000)); // 300000 ms = 5 minutes
+        vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
 #else
         vTaskDelay(pdMS_TO_TICKS(30000)); // 30000 ms = 30 seconds
 #endif
@@ -94,7 +99,11 @@ void measure_temp_hum()
 }
 #endif
 
-#ifdef BATTERY_FEATURES
+#if defined BUILTIN_LIGHT
+static TaskHandle_t flash_task_handle = NULL;
+#endif
+
+#if defined BATTERY_FEATURES && !defined DEEP_SLEEP
 void measure_battery()
 {
     while (1)
@@ -102,16 +111,40 @@ void measure_battery()
         connected = connection_status();
         if (connected)
         {
-            get_battery_level();
+            read_battery_level();
+            uint8_t bat_lev = get_battery_level();
+#if defined SWITCH_FEATURES || BUILTIN_LIGHT
+            if (bat_lev < 10)
+            {
+                ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
+#if defined SWITCH_FEATURES
+                switch_driver_set_power(0);
+#endif
+#if defined BUILTIN_LIGHT
+                // Stop flashing
+                if (flash_task_handle != NULL)
+                {
+                    vTaskDelete(flash_task_handle);
+                    flash_task_handle = NULL;
+                }
+                light_driver_set_power(false); // ensure LED is off
+#endif
+            }
+#endif
+            if (bat_lev < 5)
+            {
+                ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
+                start_deep_sleep();
+            }
         }
         else
         {
             ESP_LOGW(TAG, "Device is not connected! Could not measure the battery level");
         }
 #if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(600000)); // 900000 ms = 15 minutes
+        vTaskDelay(pdMS_TO_TICKS(900000)); // 900000 ms = 15 minutes
 #else
-        vTaskDelay(pdMS_TO_TICKS(60000)); // 60000 ms = 1 minutes
+        vTaskDelay(pdMS_TO_TICKS(10000)); // 60000 ms = 1 minutes
 #endif
     }
 }
@@ -137,29 +170,111 @@ void waterleak_loop()
 #endif
 #endif
 
-#ifdef SWITCH_FEATURES
+#if defined SWITCH_FEATURES || defined BUILTIN_LIGHT
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
     bool light_state = 0;
+#ifdef BUILTIN_LIGHT
+    uint16_t light_color_x = 0;
+    uint16_t light_color_y = 0;
+#endif
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
                         message->info.status);
     ESP_LOGI(TAG, "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)", message->info.dst_endpoint, message->info.cluster,
              message->attribute.id, message->attribute.data.size);
+#ifdef SWITCH_FEATURES
     if (message->info.dst_endpoint == DEVICE_ENDPOINT)
     {
         if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF)
         {
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
-                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_power(light_state);
+#if defined BATTERY_FEATURES
+                if (get_battery_level() < 10)
+                {
+                    ESP_LOGW(TAG, "Battery level is too low to change the switch state false.");
+                    switch_driver_set_power(0);
+                }
+                else
+                {
+                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                    switch_driver_set_power(light_state);
+                }
+#else
+                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                    switch_driver_set_power(light_state);
+#endif
             }
         }
     }
+#endif
+#ifdef BUILTIN_LIGHT
+    if (message->info.dst_endpoint == DEVICE_ENDPOINT)
+    {
+        switch (message->info.cluster)
+        {
+        case ESP_ZB_ZCL_CLUSTER_ID_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
+            {
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+
+                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+
+                if (light_state)
+                {
+                    // Start flashing if not already running
+                    if (flash_task_handle == NULL)
+                    {
+                        xTaskCreate(flash_task, "flash_task", 2048, NULL, 5, &flash_task_handle);
+                    }
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                    }
+                    light_driver_set_power(false); // ensure LED is off
+                }
+            }
+            break;
+        case ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U16)
+            {
+                light_color_x = message->attribute.data.value ? *(uint16_t *)message->attribute.data.value : light_color_x;
+                light_color_y = *(uint16_t *)esp_zb_zcl_get_attribute(message->info.dst_endpoint, message->info.cluster,
+                                                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID)
+                                     ->data_p;
+                ESP_LOGI(TAG, "Light color x changes to 0x%x", light_color_x);
+            }
+            else if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U16)
+            {
+                light_color_y = message->attribute.data.value ? *(uint16_t *)message->attribute.data.value : light_color_y;
+                light_color_x = *(uint16_t *)esp_zb_zcl_get_attribute(message->info.dst_endpoint, message->info.cluster,
+                                                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID)
+                                     ->data_p;
+                ESP_LOGI(TAG, "Light color y changes to 0x%x", light_color_y);
+            }
+            else
+            {
+                ESP_LOGW(TAG, "Color control cluster data: attribute(0x%x), type(0x%x)", message->attribute.id, message->attribute.data.type);
+            }
+            light_driver_set_color_xy(light_color_x, light_color_y);
+            break;
+        default:
+            ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
+        }
+    }
+#endif
     return ret;
 }
 #endif
@@ -217,7 +332,7 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
         ret = zb_ota_upgrade_status_handler(*(esp_zb_zcl_ota_upgrade_value_message_t *)message);
         break;
 #endif
-#ifdef SWITCH_FEATURES
+#if defined SWITCH_FEATURES || defined BUILTIN_LIGHT
     case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
         ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
         break;
@@ -291,6 +406,10 @@ static void esp_zb_task(void *pvParameters)
     create_light_switch_cluster(esp_zb_cluster_list);
 #endif
 
+#ifdef BUILTIN_LIGHT
+    create_builtin_light_cluster(esp_zb_cluster_list);
+#endif
+
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
     esp_zb_endpoint_config_t endpoint_config = {
         .endpoint = DEVICE_ENDPOINT,
@@ -321,7 +440,8 @@ static void update_rtc_time()
             zb_update_current_time(now);
             zb_update_local_time(now);
         }
-        vTaskDelay(pdMS_TO_TICKS(60000)); // 60000 ms = 1 minutes
+        // TODO can be optimized
+        vTaskDelay(pdMS_TO_TICKS(600000)); // 60000 ms = 1 minutes
     }
 }
 
@@ -339,11 +459,24 @@ void app_main(void)
 #ifdef LIGHT_SLEEP
     ESP_ERROR_CHECK(esp_zb_power_save_init());
 #endif
-#ifdef DEEP_SLEEP
+#if defined DEEP_SLEEP || BATTERY_FEATURES
     zb_deep_sleep_init();
 #endif
 #ifdef SWITCH_FEATURES
-    ESP_LOGI(TAG, "Deferred driver initialization %s", light_driver_init(LIGHT_DEFAULT_OFF) ? "failed" : "successful");
+    ESP_LOGI(TAG, "Deferred driver initialization %s", switch_driver_init(SWITCH_DEFAULT_OFF) ? "failed" : "successful");
+#endif
+// TODO ESP_LOGI above does not work.
+#if defined BUILTIN_LIGHT
+    static bool is_inited = false;
+    if (!is_inited)
+    {
+        // light_driver_init(LIGHT_DEFAULT_OFF);
+        is_inited = true;
+    }
+    // TODO: light_driver_set_power off
+    light_driver_init(LIGHT_DEFAULT_OFF);
+
+    ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");
 #endif
 #if !defined DEEP_SLEEP
 #if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
