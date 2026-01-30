@@ -20,6 +20,9 @@
 
 #include "esp_zigbee_core.h"
 
+#define ESP_ZB_ZCL_CLUSTER_ID_VOC_MEASUREMENT 0xFC05
+#define ESP_ZB_ZCL_ATTR_VOC_MEASUREMENT_MEASURED_VALUE_ID 0x0000
+
 #ifdef __cplusplus
 extern "C"
 {

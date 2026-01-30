@@ -51,6 +51,10 @@
 #include "temperature_humidity.h"
 #endif
 
+#ifdef BME680
+#include "air_quality.h"
+#endif
+
 #if defined SWITCH_FEATURES
 #include "switch.h"
 #endif
@@ -79,10 +83,32 @@ void measure_temp_hum()
         connected = connection_status();
         if (connected)
         {
-#ifdef DHT22
             check_temperature();
             check_humidity();
+        }
+        else
+        {
+            ESP_LOGW(TAG, "Device is not connected! Could not measure the temperature and humidity");
+        }
+#if !defined TESTING
+        vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
+#else
+        vTaskDelay(pdMS_TO_TICKS(30000)); // 30000 ms = 30 seconds
 #endif
+    }
+}
+#endif
+
+#ifdef BME680
+void measure_air()
+{
+    while (1)
+    {
+        connected = connection_status();
+        if (connected)
+        {
+            check_temperature();
+            check_humidity();
         }
         else
         {
@@ -475,6 +501,14 @@ void app_main(void)
 #if !defined DEEP_SLEEP
 #if defined DHT22
     xTaskCreate(measure_temp_hum, "measure_temp_hum", 4096, NULL, 5, NULL);
+#endif
+#if defined BME680
+    // TODO: implement BME680 task
+    #if !defined SIMULATE
+    xTaskCreate(bsec_task, "bsec", 10240, NULL, 5, NULL);
+    #else
+    xTaskCreate(sim_bsec_task, "sim_bsec", 4096, NULL, 5, NULL);
+    #endif  
 #endif
 #ifdef BATTERY_FEATURES
     xTaskCreate(measure_battery, "measure_battery", 4096, NULL, 4, NULL);
