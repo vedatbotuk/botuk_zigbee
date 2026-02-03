@@ -18,7 +18,9 @@
 #include "macros.h"
 #include "random_utils.h"
 
-static const char *TAG = "AIR_QUALITY";
+#include "esp_zigbee_core.h"
+
+static const char *TAG_AIR_QUALITY = "AIR_QUALITY";
 
 /* --- Global Handles --- */
 i2c_master_dev_handle_t dev_handle;
@@ -55,9 +57,9 @@ void load_bsec_state(void) {
             bsec_library_return_t status = bsec_set_state(bsec_state, length, work_buffer, BSEC_MAX_STATE_BLOB_SIZE);
             
             if (status == BSEC_OK) {
-                ESP_LOGI(TAG, "BSEC state loaded from NVS");
+                ESP_LOGI(TAG_AIR_QUALITY, "BSEC state loaded from NVS");
             } else {
-                ESP_LOGE(TAG, "BSEC set_state failed: %d", status);
+                ESP_LOGE(TAG_AIR_QUALITY, "BSEC set_state failed: %d", status);
             }
         }
         nvs_close(my_handle);
@@ -75,7 +77,7 @@ void save_bsec_state(void) {
             nvs_set_blob(my_handle, "bsec_state", bsec_state, length);
             nvs_commit(my_handle);
             nvs_close(my_handle);
-            ESP_LOGI(TAG, "BSEC state saved to NVS");
+            ESP_LOGI(TAG_AIR_QUALITY, "BSEC state saved to NVS");
         }
     }
 }
@@ -101,7 +103,7 @@ const char* accuracy_str(uint8_t acc)
 }
 
 void sim_bsec_task(void *pvParameters) {
-    ESP_LOGI(TAG, "Simulated BSEC Task Started");
+    ESP_LOGI(TAG_AIR_QUALITY, "Simulated BSEC Task Started");
 
     static float IAQ = 0.0f;
     static int accuracy = 6;
@@ -120,18 +122,18 @@ void sim_bsec_task(void *pvParameters) {
       hum = 20.0f + ((float)random_utils_generate(601)); // Random hum between 20.0 and 80.0
       gas_res = 5000.0f + ((float)random_utils_generate(15001)); // Random gas_res between 5000 and 20000
       
-      ESP_LOGI(TAG, "Simulated IAQ: %.2f, Accuracy: %s", IAQ, acc_str);
-      ESP_LOGI(TAG, "Simulated eCO2: %.2f ppm", eCO2);
-      ESP_LOGI(TAG, "Simulated bVOC: %.2f mg/m3", bVOC);
-      ESP_LOGI(TAG, "Simulated Temperature: %.2f °C", temp);
-      ESP_LOGI(TAG, "Simulated Humidity: %.2f %%", hum);
-      ESP_LOGI(TAG, "Simulated Gas Resistance: %.2f Ohms", gas_res);
+      ESP_LOGI(TAG_AIR_QUALITY, "Simulated IAQ: %.2f, Accuracy: %s", IAQ, acc_str);
+      ESP_LOGI(TAG_AIR_QUALITY, "Simulated eCO2: %.2f ppm", eCO2);
+      ESP_LOGI(TAG_AIR_QUALITY, "Simulated bVOC: %.2f mg/m3", bVOC);
+      ESP_LOGI(TAG_AIR_QUALITY, "Simulated Temperature: %.2f °C", temp);
+      ESP_LOGI(TAG_AIR_QUALITY, "Simulated Humidity: %.2f %%", hum);
+      ESP_LOGI(TAG_AIR_QUALITY, "Simulated Gas Resistance: %.2f Ohms", gas_res);
 
       zb_update_iaq(IAQ, accuracy);
       zb_update_co2(eCO2);
       zb_update_bvoc(bVOC);
-      zb_update_temperature(temp);
-      zb_update_humidity(hum);
+      zb_update_temp(temp);
+      zb_update_hum(hum);
       zb_update_gas_resistance(gas_res);
 
       vTaskDelay(pdMS_TO_TICKS(10000)); // Simulate work every 5 seconds
@@ -139,7 +141,7 @@ void sim_bsec_task(void *pvParameters) {
 }
 
 void bsec_task(void *pvParameters) {
-    ESP_LOGI(TAG, "BSEC Task Started");
+    ESP_LOGI(TAG_AIR_QUALITY, "BSEC Task Started");
 
     // 1. Initialize I2C Master Bus
     i2c_master_bus_config_t bus_cfg = {
@@ -158,7 +160,7 @@ void bsec_task(void *pvParameters) {
         .scl_speed_hz = 100000,
     };
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
-    ESP_LOGI(TAG, "I2C Initialized");
+    ESP_LOGI(TAG_AIR_QUALITY, "I2C Initialized");
 
     // 2. Setup BME68x Device
     bme_dev.read = bus_i2c_read;
@@ -170,17 +172,17 @@ void bsec_task(void *pvParameters) {
 
     int8_t rslt = bme68x_init(&bme_dev);
     if (rslt != BME68X_OK) {
-        ESP_LOGE(TAG, "BME68x Init Failed: %d. Check Address or Wiring!", rslt);
+        ESP_LOGE(TAG_AIR_QUALITY, "BME68x Init Failed: %d. Check Address or Wiring!", rslt);
         vTaskDelete(NULL);
     }
-    ESP_LOGI(TAG, "BME68x Found");
+    ESP_LOGI(TAG_AIR_QUALITY, "BME68x Found");
 
     // 3. Initialize BSEC
     if (bsec_init() != BSEC_OK) {
-        ESP_LOGE(TAG, "BSEC Init Failed");
+        ESP_LOGE(TAG_AIR_QUALITY, "BSEC Init Failed");
         vTaskDelete(NULL);
     }
-    ESP_LOGI(TAG, "BSEC Library Initialized");
+    ESP_LOGI(TAG_AIR_QUALITY, "BSEC Library Initialized");
 
     // 4. Subscribe to IAQ
     bsec_sensor_configuration_t requested_virtual_sensors[6];
@@ -222,8 +224,8 @@ void bsec_task(void *pvParameters) {
     while (1) {
         int64_t curr_time_ns = esp_timer_get_time() * 1000;
         bsec_sensor_control(curr_time_ns, &settings);
-    
-    
+
+
         if (settings.trigger_measurement) {
             // Configure Sensor
             struct bme68x_conf conf = { .os_hum = settings.humidity_oversampling, 
@@ -281,29 +283,41 @@ void bsec_task(void *pvParameters) {
                     
                     switch (outputs[i].sensor_id) {
                         case BSEC_OUTPUT_IAQ:
-                            ESP_LOGI(TAG, "IAQ: %.2f", outputs[i].signal);
-                            ESP_LOGI(TAG, "Accuracy: %s (%d)", accuracy_str(outputs[i].accuracy), outputs[i].accuracy);
-                            zb_update_iaq(outputs[i].signal, outputs[i].accuracy);
+                            ESP_LOGI(TAG_AIR_QUALITY, "IAQ: %.2f", outputs[i].signal);
+                            ESP_LOGI(TAG_AIR_QUALITY, "Accuracy: %s (%d)", accuracy_str(outputs[i].accuracy), outputs[i].accuracy);
+                            if (connection_status()) {
+                                zb_update_iaq(outputs[i].signal, outputs[i].accuracy);
+                            }
                             break;
                         case BSEC_OUTPUT_CO2_EQUIVALENT:
-                            ESP_LOGI(TAG, "eCO2: %.0f ppm", outputs[i].signal);
-                            zb_update_eco2(outputs[i].signal);
+                            ESP_LOGI(TAG_AIR_QUALITY, "eCO2: %.0f ppm", outputs[i].signal);
+                            if (connection_status()) {
+                                zb_update_co2(outputs[i].signal);
+                            }
                             break;
                         case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
-                            ESP_LOGI(TAG, "bVOC: %.2f ppm", outputs[i].signal);
-                            zb_update_bvoc(outputs[i].signal);
+                            ESP_LOGI(TAG_AIR_QUALITY, "bVOC: %.2f ppm", outputs[i].signal);
+                            if (connection_status()) {
+                                zb_update_bvoc(outputs[i].signal);
+                            }
                             break;
                         case BSEC_OUTPUT_RAW_TEMPERATURE:
-                            ESP_LOGI(TAG, "Temp: %.2f°C", outputs[i].signal);
-                            zb_update_temp((int16_t)(outputs[i].signal * 100));
+                            ESP_LOGI(TAG_AIR_QUALITY, "Temp: %.2f°C", outputs[i].signal);
+                            if (connection_status()) {
+                                zb_update_temp((int)(outputs[i].signal * 100));
+                            }
                             break;
                         case BSEC_OUTPUT_RAW_HUMIDITY:
-                            ESP_LOGI(TAG, "Hum: %.2f%%", outputs[i].signal);
-                            zb_update_hum((uint16_t)(outputs[i].signal * 100));
+                            ESP_LOGI(TAG_AIR_QUALITY, "Hum: %.2f%%", outputs[i].signal);
+                            if (connection_status()) {
+                                zb_update_hum((uint16_t)(outputs[i].signal * 100));
+                            }
                             break;
                         case BSEC_OUTPUT_RAW_GAS:
-                            ESP_LOGI(TAG, "Gas Res: %.0f Ohm", outputs[i].signal);
-                            zb_update_gas(outputs[i].signal);
+                            ESP_LOGI(TAG_AIR_QUALITY, "Gas Res: %.0f Ohm", outputs[i].signal);
+                            if (connection_status()) {
+                                zb_update_gas_resistance(outputs[i].signal);
+                            }
                             break;
                         default:
                             break;

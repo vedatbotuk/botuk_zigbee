@@ -23,12 +23,11 @@ extern "C"
 {
 #endif
 
-    extern bool conn;
     extern const char *TAG_SIGNAL_HANDLER;
     extern uint8_t deepsleep_cnt;
 
     // void sensor_map_status();
-    bool connection_status();
+    bool connection_status(void);
     void create_signal_handler(esp_zb_app_signal_t signal_struct);
 
 #ifdef __cplusplus

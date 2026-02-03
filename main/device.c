@@ -99,29 +99,6 @@ void measure_temp_hum()
 }
 #endif
 
-#ifdef BME680
-void measure_air()
-{
-    while (1)
-    {
-        connected = connection_status();
-        if (connected)
-        {
-            check_temperature();
-            check_humidity();
-        }
-        else
-        {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the temperature and humidity");
-        }
-#if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
-#else
-        vTaskDelay(pdMS_TO_TICKS(30000)); // 30000 ms = 30 seconds
-#endif
-    }
-}
-#endif
 
 #if defined BUILTIN_LIGHT
 static TaskHandle_t flash_task_handle = NULL;
@@ -401,12 +378,23 @@ static void esp_zb_task(void *pvParameters)
     create_basic_cluster(esp_zb_cluster_list);
     create_identify_cluster(esp_zb_cluster_list);
     create_time_cluster(esp_zb_cluster_list);
-#ifdef DHT22
+#if defined DHT22 || defined BME680
     create_hum_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_HUMIDITY Cluster");
     create_temp_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
 #endif
+#if defined BME680
+    create_gas_resistance_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_GAS Cluster");
+    create_iaq_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create IAQ Cluster");
+    create_co2_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create CO2 Cluster");
+    create_voc_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create BVOC Cluster");
+#endif
+
 #ifdef WATERLEAK_FEATURES
     create_waterleak_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create WATERLEAK Cluster");
