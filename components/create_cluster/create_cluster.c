@@ -262,7 +262,7 @@ void create_iaq_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     uint16_t undefined_value;
     esp_zb_attribute_list_t *esp_zb_iaq_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_AIR_QUALITY);
     esp_zb_custom_cluster_add_custom_attr(
-        esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_ATTR_AIR_QUALITY_IAQ_VALUEU_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
+        esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_ATTR_AIR_QUALITY_IAQ_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
         ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
