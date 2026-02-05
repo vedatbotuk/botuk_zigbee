@@ -118,6 +118,9 @@ void sim_bsec_task(void *pvParameters)
 {
     ESP_LOGI(TAG_AIR_QUALITY, "Simulated BSEC Task Started");
 
+    vTaskDelay(pdMS_TO_TICKS(10000));
+    ESP_LOGI(TAG_AIR_QUALITY, "Simulated BSEC Task Initial Delay Completed. Starting sim bsec loop.");
+
     static float IAQ = 0.0f;
     static int accuracy = 6;
     static const char *acc_str = "Calibrated";
@@ -157,6 +160,9 @@ void sim_bsec_task(void *pvParameters)
 void bsec_task(void *pvParameters)
 {
     ESP_LOGI(TAG_AIR_QUALITY, "BSEC Task Started");
+
+    vTaskDelay(pdMS_TO_TICKS(10000));
+    ESP_LOGI(TAG_AIR_QUALITY, "BSEC Task Initial Delay Completed. Starting bsec loop.");
 
     // 1. Initialize I2C Master Bus
     i2c_master_bus_config_t bus_cfg = {

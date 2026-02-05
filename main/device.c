@@ -483,6 +483,7 @@ void app_main(void)
     }
 #endif
 #endif
+    vTaskDelay(pdMS_TO_TICKS(1000)); // delay to ensure all tasks are up before starting Zigbee task
     xTaskCreate(esp_zb_task, "Zigbee_main", 4 * 1024, NULL, 10, NULL);
     xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 5, NULL);
 }
