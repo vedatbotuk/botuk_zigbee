@@ -18,8 +18,6 @@
 #include "macros.h"
 #include "random_utils.h"
 
-#include "esp_zigbee_core.h"
-
 static const char *TAG_AIR_QUALITY = "AIR_QUALITY";
 
 /* --- Global Handles --- */
