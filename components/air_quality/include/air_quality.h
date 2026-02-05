@@ -16,9 +16,6 @@ extern "C" {
 
 extern i2c_master_dev_handle_t dev_handle;
 extern struct bme68x_dev bme_dev;
-extern bool connection_status(void);
-
-bool is_connected(void);
 
 /**
  * @brief I2C read callback for BME68x

@@ -15,10 +15,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #ifndef ZB_TEMP_SENSOR_H
 #define ZB_TEMP_SENSOR_H
 
-void zb_update_temp(int temperature);
+#include <stdbool.h>
+
+extern bool connection_status(void);
+bool is_connected(void);
+
+
+void zb_update_temp(int16_t temperature);
 void zb_report_temp();
 void zb_update_hum(int humidity);
 void zb_report_hum();
