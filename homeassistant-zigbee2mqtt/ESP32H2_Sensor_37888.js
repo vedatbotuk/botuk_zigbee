@@ -2,17 +2,37 @@ const {
     temperature,
     humidity,
     co2,
+    numeric,
+    deviceAddCustomCluster
 } = require('zigbee-herdsman-converters/lib/modernExtend');
 
 const { logger } = require('zigbee-herdsman-converters/lib/logger');
+const exposes = require('zigbee-herdsman-converters/lib/exposes');
 const utils = require('zigbee-herdsman-converters/lib/utils');
+const e = exposes.presets;
 
-const NS = 'zhc:sensirion';
+const NS = 'zhc:botuk';
 
-// Define Custom Cluster IDs
-const CLUSTER_IAQ = 0xFC04;
-const CLUSTER_VOC = 0xFC05;
-const CLUSTER_GAS = 0xFC06;
+/**
+ * Custom Clusters Definition
+ */
+const addCustomClusters = () => [
+    deviceAddCustomCluster('botukIaqMeas', {
+        ID: 0xFC04,
+        attributes: { measuredValue: { ID: 0x0000, type: 0x39 } }, // SINGLE_PREC
+        commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('botukVocMeas', {
+        ID: 0xFC05,
+        attributes: { measuredValue: { ID: 0x0000, type: 0x39 } },
+        commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('botukGasMeas', {
+        ID: 0xFC06,
+        attributes: { measuredValue: { ID: 0x0000, type: 0x39 } },
+        commands: {}, commandsResponse: {},
+    })
+];
 
 const definition = {
     zigbeeModel: ['37888'],
@@ -20,98 +40,102 @@ const definition = {
     vendor: 'Botuk',
     description: 'ESP32H2 Sensor Device Air Quality Sensor',
 
-    // Standard extends for standard clusters
     extend: [
-        temperature(),
-        humidity(),
-        co2(),
+        temperature({
+            reporting: {
+                min: 10,
+                max: 3600,
+                change: 10
+            }
+        }),
+        humidity({
+            reporting: { min: 10, max: 3600, change: 10 }
+        }),
+        co2({
+            reporting: { min: 10, max: 3600, change: 10 }
+        }),
+        ...addCustomClusters(),
+
+        numeric({
+            name: 'iaq_index',
+            cluster: 'botukIaqMeas',
+            attribute: 'measuredValue',
+            unit: 'index',
+            access: 'STATE_GET',
+            precision: 1,
+            reporting: { min: 1, max: 3600, change: 1 },
+            description: 'Measured IAQ index value'
+        }),
+        numeric({
+            name: 'voc_index',
+            cluster: 'botukVocMeas',
+            attribute: 'measuredValue',
+            unit: 'ppm',
+            access: 'STATE_GET',
+            precision: 2,
+            reporting: { min: 1, max: 3600, change: 0.1 },
+            description: 'Measured VOC index value'
+        }),
+        numeric({
+            name: 'gas_resistance',
+            cluster: 'botukGasMeas',
+            attribute: 'measuredValue',
+            unit: 'Ohm',
+            access: 'STATE_GET',
+            precision: 0,
+            reporting: { min: 1, max: 3600, change: 10 },
+            description: 'Gas resistance value'
+        }),
     ],
 
-    // Manual converter to handle Custom Clusters by ID
-    fromZigbee: [
-        {
-            // We listen to all attribute reports and filter by cluster ID inside
-            cluster: 'manuSpecificTuya', // Placeholder to ensure this runs (or omit if relying on generic)
-            // Better approach: Use a custom matcher that matches the raw Cluster ID
-            // Z2M allows matching by stringified Cluster ID if name is unknown
-            cluster: [String(CLUSTER_IAQ), String(CLUSTER_VOC), String(CLUSTER_GAS), '64516', '64517', '64518'],
-            type: ['attributeReport', 'readResponse'],
-            convert: (model, msg, publish, options, meta) => {
-                const result = {};
-                const clusterId = msg.cluster; // This might be number or string
+    fromZigbee: [{
+        cluster: 'botukIaqMeas',
+        type: ['attributeReport', 'readResponse'],
+        convert: (model, msg, publish, options, meta) => {
+            if (msg.data.measuredValue !== undefined) {
+                const iaq = utils.toNumber(msg.data.measuredValue);
 
-                // Helper to check ID match
-                const isCluster = (id) => clusterId == id || clusterId === String(id);
+                // Classification Logic
+                let classification = "Error";
+                if (iaq <= 50) classification = "Excellent";
+                else if (iaq <= 100) classification = "Good";
+                else if (iaq <= 150) classification = "Lightly polluted";
+                else if (iaq <= 200) classification = "Moderately polluted";
+                else if (iaq <= 250) classification = "Heavily polluted";
+                else if (iaq <= 350) classification = "Severely polluted";
+                else if (iaq <= 500) classification = "Extremely polluted";
 
-                // 1. IAQ Cluster (0xFC04 / 64516)
-                if (isCluster(CLUSTER_IAQ) && msg.data.measuredValue !== undefined) {
-                    const iaq = utils.toNumber(msg.data.measuredValue);
-                    result.iaq_index = iaq;
-                    
-                    // TVOC-derived CO₂-equivalent calculation
-                    const factorCo2 = 10;
-                    result.eco2 = iaq * factorCo2 + 500;
-                }
-
-                // 2. VOC Cluster (0xFC05 / 64517)
-                if (isCluster(CLUSTER_VOC) && msg.data.measuredValue !== undefined) {
-                    result.voc_index = utils.toNumber(msg.data.measuredValue);
-                }
-
-                // 3. Gas Resistance Cluster (0xFC06 / 64518)
-                if (isCluster(CLUSTER_GAS) && msg.data.measuredValue !== undefined) {
-                    result.gas_resistance = utils.toNumber(msg.data.measuredValue);
-                }
-
-                return result;
-            },
+                return {
+                    air_quality: classification,
+                    eco2: Math.round(iaq * 10 + 500)
+                };
+            }
         },
-    ],
+    }],
 
-    // Expose the data points to Home Assistant / MQTT
     exposes: [
-        // Standard extends handle temp/hum/co2 exposes automatically.
-        // We manually add the others:
-        (e) => {
-            const expose = require('zigbee-herdsman-converters/lib/exposes');
-            return [
-                expose.numeric('iaq_index', 'state').withUnit('index').withDescription('Measured IAQ index value'),
-                expose.numeric('voc_index', 'state').withUnit('index').withDescription('Measured VOC index value'),
-                expose.numeric('eco2', 'state').withUnit('ppm').withDescription('TVOC-derived CO₂-equivalent'),
-                expose.numeric('gas_resistance', 'state').withUnit('Ohm').withDescription('Gas resistance value'),
-            ];
-        }
-    ].flat(),
+        e.numeric('eco2', exposes.access.STATE)
+            .withUnit('ppm')
+            .withValueMin(500)
+            .withValueMax(5500)
+            .withDescription('TVOC-derived CO₂-equivalent'),
+        e.text('air_quality', exposes.access.STATE)
+            .withDescription('IAQ Classification'),
+    ],
 
     configure: async (device, coordinatorEndpoint) => {
         const endpoint = device.getEndpoint(1);
-        const customClusters = [CLUSTER_IAQ, CLUSTER_VOC, CLUSTER_GAS];
-
-        // 1. Manually add clusters to the device (Client/Server) to ensure Z2M knows them
-        // This is the fallback for deviceAddCustomCluster
-        for (const clusterId of customClusters) {
-            if (!endpoint.inputClusters.includes(clusterId)) {
-                endpoint.inputClusters.push(clusterId);
-            }
-        }
-        
-        device.save();
-
-        // 2. Bind and Configure Reporting
-        for (const cluster of customClusters) {
+        const clusters = [0xFC04, 0xFC05, 0xFC06];
+        for (const cluster of clusters) {
             try {
                 await endpoint.bind(cluster, coordinatorEndpoint);
-                
-                // Configure Reporting Manually
-                // Payload: Attribute 0x0000, Type 0x39 (Single Precision Float), Min 1, Max 3600, Change 1
                 await endpoint.configureReporting(cluster, [{
-                    attribute: { ID: 0x0000, type: 0x39 }, 
+                    attribute: 'measuredValue',
                     minimumReportInterval: 1,
                     maximumReportInterval: 3600,
-                    reportableChange: 1,
+                    reportableChange: 0.1
                 }]);
-                
-                logger.info(`Configured custom cluster ${cluster} for ${device.ieeeAddress}`, NS);
+                logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
             } catch (error) {
                 logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
             }
