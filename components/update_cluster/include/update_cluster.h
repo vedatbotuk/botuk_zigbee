@@ -15,10 +15,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #ifndef ZB_TEMP_SENSOR_H
 #define ZB_TEMP_SENSOR_H
 
-void zb_update_temp(int temperature);
+#include <stdbool.h>
+
+extern bool connection_status(void);
+bool is_connected(void);
+
+
+void zb_update_temp(int16_t temperature);
 void zb_report_temp();
 void zb_update_hum(int humidity);
 void zb_report_hum();
@@ -28,5 +35,13 @@ void zb_update_waterleak(uint16_t leak);
 void zb_report_waterleak(uint16_t leak);
 void zb_update_current_time(uint32_t current_time);
 void zb_update_local_time(uint32_t local_time);
+void zb_update_iaq(float iaq, uint8_t accuracy);
+void zb_report_iaq();
+void zb_update_co2(float eco2);
+void zb_report_co2();
+void zb_update_bvoc(float bvoc);
+void zb_report_bvoc();
+void zb_update_gas_resistance(float gas_resistance);
+void zb_report_gas_resistance();
 
 #endif // ZB_TEMP_SENSOR_H

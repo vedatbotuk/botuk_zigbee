@@ -18,7 +18,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 
-// TODO: Rename the Macros. For example WATERLEAK_FEATURES, TEMPERATURE_FEATURES
+// TODO: Rename the Macros. For example WATERLEAK_FEATURES, DHT22, etc.
 
 #if (SENSOR_MAP >> 6 & 1) == 1
 #define SWITCH_FEATURES true
@@ -45,11 +45,11 @@
 #endif
 
 #if (SENSOR_MAP >> 12 & 1) == 1
-#define TEMPERATURE_FEATURES true
+#define BME680 true
 #endif
 
 #if (SENSOR_MAP >> 13 & 1) == 1
-#define HUMIDITY_FEATURES true
+#define DHT22 true
 #endif
 
 #if (SENSOR_MAP >> 14 & 1) == 1

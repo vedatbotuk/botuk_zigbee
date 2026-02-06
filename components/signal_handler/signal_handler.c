@@ -27,7 +27,7 @@
 #endif
 
 const char *TAG_SIGNAL_HANDLER = "SIGNAL";
-bool conn = false;
+static bool conn = false;
 
 #ifdef MIX_SLEEP
 uint8_t deepsleep_cnt = 0;
@@ -57,7 +57,7 @@ static void bdb_start_top_level_commissioning_cb(uint8_t mode_mask)
     ESP_RETURN_ON_FALSE(esp_zb_bdb_start_top_level_commissioning(mode_mask) == ESP_OK, , TAG_SIGNAL_HANDLER, "Failed to start Zigbee bdb commissioning");
 }
 
-bool connection_status()
+bool connection_status(void)
 {
     return conn;
 }
@@ -82,10 +82,8 @@ static void deep_sleep_check()
 #ifdef DEEP_SLEEP
 static void get_sensor_data()
 {
-#ifdef TEMPERATURE_FEATURES
+#ifdef DHT22
     check_temperature();
-#endif
-#ifdef HUMIDITY_FEATURES
     check_humidity();
 #endif
 #ifdef WATERLEAK_FEATURES

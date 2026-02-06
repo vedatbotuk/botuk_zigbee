@@ -128,6 +128,18 @@ void create_hum_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_cluster_list_add_humidity_meas_cluster(esp_zb_cluster_list, esp_zb_hum_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
+void create_co2_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
+{
+    float_t undefined_value = 0.0f; // Use float
+    float_t co2_max = 40000.0f;     // Use float
+    float_t co2_min = 0.0f;         // Use float
+    esp_zb_attribute_list_t *esp_zb_co2_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT);
+    esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_co2_meas_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &undefined_value);
+    esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_co2_meas_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MIN_MEASURED_VALUE_ID, &co2_min);
+    esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_co2_meas_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MAX_MEASURED_VALUE_ID, &co2_max);
+    esp_zb_cluster_list_add_carbon_dioxide_measurement_cluster(esp_zb_cluster_list, esp_zb_co2_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+}
+
 void create_waterleak_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 {
     esp_zb_ias_zone_cluster_cfg_t ias_zone_cluster_cfg = {
@@ -233,4 +245,34 @@ void create_time_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_time_cluster_add_attr(esp_zb_time_cluster, ESP_ZB_ZCL_ATTR_TIME_LAST_SET_TIME_ID, &undefined_value);
     esp_zb_time_cluster_add_attr(esp_zb_time_cluster, ESP_ZB_ZCL_ATTR_TIME_VALID_UNTIL_TIME_ID, &undefined_value);
     esp_zb_cluster_list_add_time_cluster(esp_zb_cluster_list, esp_zb_time_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+}
+
+void create_voc_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
+{
+    uint16_t undefined_value;
+    esp_zb_attribute_list_t *esp_zb_voc_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_VOC_MEASUREMENT);
+    esp_zb_custom_cluster_add_custom_attr(
+        esp_zb_voc_meas_cluster, ESP_ZB_ZCL_ATTR_VOC_MEASUREMENT_MEASURED_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+    esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_voc_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+}
+
+void create_iaq_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
+{
+    uint16_t undefined_value;
+    esp_zb_attribute_list_t *esp_zb_iaq_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_AIR_QUALITY);
+    esp_zb_custom_cluster_add_custom_attr(
+        esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_ATTR_AIR_QUALITY_IAQ_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+    esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+}
+
+void create_gas_resistance_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
+{
+    uint16_t undefined_value;
+    esp_zb_attribute_list_t *esp_zb_gas_resistance_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_GAS_RESISTANCE_MEASUREMENT);
+    esp_zb_custom_cluster_add_custom_attr(
+        esp_zb_gas_resistance_meas_cluster, ESP_ZB_ZCL_ATTR_GAS_RESISTANCE_MEASUREMENT_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+    esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_gas_resistance_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }

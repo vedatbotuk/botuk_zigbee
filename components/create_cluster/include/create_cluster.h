@@ -20,6 +20,15 @@
 
 #include "esp_zigbee_core.h"
 
+#define ESP_ZB_ZCL_CLUSTER_ID_AIR_QUALITY 0xFC04
+#define ESP_ZB_ZCL_ATTR_AIR_QUALITY_IAQ_VALUE_ID 0x0000
+
+#define ESP_ZB_ZCL_CLUSTER_ID_VOC_MEASUREMENT 0xFC05
+#define ESP_ZB_ZCL_ATTR_VOC_MEASUREMENT_MEASURED_VALUE_ID 0x0000
+
+#define ESP_ZB_ZCL_CLUSTER_ID_GAS_RESISTANCE_MEASUREMENT 0xFC06
+#define ESP_ZB_ZCL_ATTR_GAS_RESISTANCE_MEASUREMENT_VALUE_ID 0x0000
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,6 +43,10 @@ extern "C"
     void create_builtin_light_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
     void create_light_switch_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
     void create_time_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_voc_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_iaq_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_gas_resistance_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_co2_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
 
 #ifdef __cplusplus
 }

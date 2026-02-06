@@ -18,39 +18,58 @@
 #include <stdint.h>
 #include "esp_zigbee_core.h"
 #include "esp_log.h"
+#include "update_cluster.h"
 
 static const char *TAG_ZB_UPDATE_WATER = "UPDATE_WATERLEAK_CLUSTER";
 
 void zb_update_waterleak(uint16_t leak)
 {
-    esp_zb_lock_acquire(portMAX_DELAY);
-    esp_zb_zcl_status_t state = esp_zb_zcl_set_attribute_val(
-        DEVICE_ENDPOINT,
-        ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE,
-        ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-        ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID,
-        &leak,
-        false);
-    esp_zb_lock_release();
-
-    /* Check for error */
-    if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
+    if (connection_status())
     {
-        ESP_LOGE(TAG_ZB_UPDATE_WATER, "Setting waterleak attribute failed with %x", state);
+        esp_zb_lock_acquire(portMAX_DELAY);
+        esp_zb_zcl_status_t state = esp_zb_zcl_set_attribute_val(
+            DEVICE_ENDPOINT,
+            ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE,
+            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+            ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID,
+            &leak,
+            false);
+        esp_zb_lock_release();
+
+        /* Check for error */
+        if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
+        {
+            ESP_LOGE(TAG_ZB_UPDATE_WATER, "Setting waterleak attribute failed with %x", state);
+        }
+        else
+        {
+            ESP_LOGI(TAG_ZB_UPDATE_WATER, "Set waterleak attribute success");
+        }
+    }
+    else
+    {
+        ESP_LOGW(TAG_ZB_UPDATE_WATER, "Device is not connected! Could not measure the waterleak level");
     }
 }
 
 void zb_report_waterleak(uint16_t leak)
 {
-    static esp_zb_zcl_ias_zone_status_change_notif_cmd_t waterleak_chg_not_cmd = {};
-    waterleak_chg_not_cmd.zcl_basic_cmd.src_endpoint = DEVICE_ENDPOINT;
-    waterleak_chg_not_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_DST_ADDR_ENDP_NOT_PRESENT;
-    waterleak_chg_not_cmd.zone_status = leak;
-    waterleak_chg_not_cmd.zone_id = ESP_ZB_ZCL_CMD_IAS_ZONE_ZONE_STATUS_CHANGE_NOT_ID;
-    waterleak_chg_not_cmd.delay = 1;
+    if (connection_status())
+    {
+        static esp_zb_zcl_ias_zone_status_change_notif_cmd_t waterleak_chg_not_cmd = {};
+        waterleak_chg_not_cmd.zcl_basic_cmd.src_endpoint = DEVICE_ENDPOINT;
+        waterleak_chg_not_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_DST_ADDR_ENDP_NOT_PRESENT;
+        waterleak_chg_not_cmd.zone_status = leak;
+        waterleak_chg_not_cmd.zone_id = ESP_ZB_ZCL_CMD_IAS_ZONE_ZONE_STATUS_CHANGE_NOT_ID;
+        waterleak_chg_not_cmd.delay = 1;
 
-    /* Request sending */
-    esp_zb_lock_acquire(portMAX_DELAY);
-    esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&waterleak_chg_not_cmd);
-    esp_zb_lock_release();
+        /* Request sending */
+        esp_zb_lock_acquire(portMAX_DELAY);
+        esp_zb_zcl_ias_zone_status_change_notif_cmd_req(&waterleak_chg_not_cmd);
+        esp_zb_lock_release();
+    }
+    else
+    {
+        ESP_LOGW(TAG_ZB_UPDATE_WATER, "Device is not connected! Could not report the waterleak level");
+    }
 }

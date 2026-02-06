@@ -47,8 +47,12 @@
 #include "waterleak.h"
 #endif
 
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#ifdef DHT22
 #include "temperature_humidity.h"
+#endif
+
+#ifdef BME680
+#include "air_quality.h"
 #endif
 
 #if defined SWITCH_FEATURES
@@ -62,8 +66,6 @@
 
 static const char *TAG = "DEVICE";
 
-bool connected = false;
-
 /********************* Define functions **************************/
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
@@ -71,25 +73,13 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 }
 
 #if !defined DEEP_SLEEP
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#ifdef DHT22
 void measure_temp_hum()
 {
     while (1)
     {
-        connected = connection_status();
-        if (connected)
-        {
-#ifdef TEMPERATURE_FEATURES
-            check_temperature();
-#endif
-#ifdef HUMIDITY_FEATURES
-            check_humidity();
-#endif
-        }
-        else
-        {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the temperature and humidity");
-        }
+        check_temperature();
+        check_humidity();
 #if !defined TESTING
         vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
 #else
@@ -108,39 +98,32 @@ void measure_battery()
 {
     while (1)
     {
-        connected = connection_status();
-        if (connected)
-        {
-            read_battery_level();
-            uint8_t bat_lev = get_battery_level();
+        read_battery_level();
+        uint8_t bat_lev = get_battery_level();
 #if defined SWITCH_FEATURES || BUILTIN_LIGHT
-            if (bat_lev < 10)
-            {
-                ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
+        if (bat_lev < 10)
+        {
+            ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
 #if defined SWITCH_FEATURES
-                switch_driver_set_power(0);
+            switch_driver_set_power(0);
 #endif
 #if defined BUILTIN_LIGHT
-                // Stop flashing
-                if (flash_task_handle != NULL)
-                {
-                    vTaskDelete(flash_task_handle);
-                    flash_task_handle = NULL;
-                }
-                light_driver_set_power(false); // ensure LED is off
-#endif
-            }
-#endif
-            if (bat_lev < 5)
+            // Stop flashing
+            if (flash_task_handle != NULL)
             {
-                ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
-                start_deep_sleep();
+                vTaskDelete(flash_task_handle);
+                flash_task_handle = NULL;
             }
+            light_driver_set_power(false); // ensure LED is off
+#endif
         }
-        else
+#endif
+        if (bat_lev < 5)
         {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the battery level");
+            ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
+            start_deep_sleep();
         }
+
 #if !defined TESTING
         vTaskDelay(pdMS_TO_TICKS(900000)); // 900000 ms = 15 minutes
 #else
@@ -155,15 +138,7 @@ void waterleak_loop()
 {
     while (1)
     {
-        connected = connection_status();
-        if (connected)
-        {
-            check_waterleak();
-        }
-        else
-        {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the waterleak status");
-        }
+        check_waterleak();
         vTaskDelay(pdMS_TO_TICKS(10000)); // 10000 ms = 10 seconds
     }
 }
@@ -205,9 +180,9 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     switch_driver_set_power(light_state);
                 }
 #else
-                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                    switch_driver_set_power(light_state);
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                switch_driver_set_power(light_state);
 #endif
             }
         }
@@ -377,16 +352,23 @@ static void esp_zb_task(void *pvParameters)
     create_basic_cluster(esp_zb_cluster_list);
     create_identify_cluster(esp_zb_cluster_list);
     create_time_cluster(esp_zb_cluster_list);
-#ifdef TEMPERATURE_FEATURES
-    create_temp_cluster(esp_zb_cluster_list);
-    ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
-
-#endif
-#ifdef HUMIDITY_FEATURES
+#if defined DHT22 || defined BME680
     create_hum_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_HUMIDITY Cluster");
-
+    create_temp_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
 #endif
+#if defined BME680
+    create_gas_resistance_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_GAS Cluster");
+    create_iaq_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create IAQ Cluster");
+    create_co2_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create CO2 Cluster");
+    create_voc_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create BVOC Cluster");
+#endif
+
 #ifdef WATERLEAK_FEATURES
     create_waterleak_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create WATERLEAK Cluster");
@@ -434,12 +416,8 @@ static void update_rtc_time()
         time(&now);
         localtime_r(&now, &timeinfo);
         // ESP_LOGI(TAG, "Current time: %s", asctime(&timeinfo));
-        connected = connection_status();
-        if (connected)
-        {
-            zb_update_current_time(now);
-            zb_update_local_time(now);
-        }
+        zb_update_current_time(now);
+        zb_update_local_time(now);
         // TODO can be optimized
         vTaskDelay(pdMS_TO_TICKS(600000)); // 60000 ms = 1 minutes
     }
@@ -479,8 +457,16 @@ void app_main(void)
     ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");
 #endif
 #if !defined DEEP_SLEEP
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#if defined DHT22
     xTaskCreate(measure_temp_hum, "measure_temp_hum", 4096, NULL, 5, NULL);
+#endif
+#if defined BME680
+// TODO: implement BME680 task
+#if !defined SIMULATE
+    xTaskCreate(bsec_task, "bsec", 10240, NULL, 5, NULL);
+#else
+    xTaskCreate(sim_bsec_task, "sim_bsec", 4096, NULL, 5, NULL);
+#endif
 #endif
 #ifdef BATTERY_FEATURES
     xTaskCreate(measure_battery, "measure_battery", 4096, NULL, 4, NULL);
@@ -497,6 +483,7 @@ void app_main(void)
     }
 #endif
 #endif
+    vTaskDelay(pdMS_TO_TICKS(1000)); // delay to ensure all tasks are up before starting Zigbee task
     xTaskCreate(esp_zb_task, "Zigbee_main", 4 * 1024, NULL, 10, NULL);
     xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 5, NULL);
 }
