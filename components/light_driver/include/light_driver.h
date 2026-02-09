@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <math.h>
+#include "led_strip.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -124,6 +125,21 @@ void light_driver_set_color_hue_sat(uint8_t hue, uint8_t sat);
 * @param  arg  The argument to be set
 */
 void flash_task(void *arg);
+
+/* @brief Set red light on/off
+* @param  on  The red light on/off to be set
+*/
+void light_driver_set_red_light(bool on);
+
+/* @brief Set green light on/off
+* @param  on  The green light on/off to be set
+*/
+void light_driver_set_green_light(bool on);
+
+/* @brief Set white light on/off
+* @param  on  The white light on/off to be set
+*/
+void light_driver_set_white_light(bool on);
 
 #ifdef __cplusplus
 } // extern "C"
