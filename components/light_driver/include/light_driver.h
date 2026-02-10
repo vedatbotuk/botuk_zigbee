@@ -129,17 +129,22 @@ void flash_task(void *arg);
 /* @brief Set red light on/off
 * @param  on  The red light on/off to be set
 */
-void light_driver_set_red_light(bool on);
+void light_driver_set_red_light(void *arg);
+
+/* @brief Set yellow light on/off
+* @param  on  The yellow light on/off to be set
+*/
+void light_driver_set_yellow_light(void *arg);
 
 /* @brief Set green light on/off
 * @param  on  The green light on/off to be set
 */
-void light_driver_set_green_light(bool on);
+void light_driver_set_green_light(void *arg);
 
 /* @brief Set white light on/off
 * @param  on  The white light on/off to be set
 */
-void light_driver_set_white_light(bool on);
+void light_driver_set_white_light(void *arg);
 
 #ifdef __cplusplus
 } // extern "C"

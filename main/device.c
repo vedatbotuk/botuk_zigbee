@@ -198,8 +198,38 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Red light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_red_light(light_state);
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {                        
+                        ESP_LOGI(TAG, "Started flashing red light");
+                    } else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
+                    }
+                    xTaskCreate(light_driver_set_red_light, "light_driver_set_red_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing red light");
+                    }
+                    light_driver_set_power(false); // ensure LED is off
+                }
+            }
+            break;
+        case ESP_ZB_ZCL_CLUSTER_ID_YELLOW_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_YELLOW_LIGHT_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
+            {
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                ESP_LOGI(TAG, "Yellow light sets to %s", light_state ? "On" : "Off");
+                light_driver_set_green_light(light_state);
             }
             break;
         case ESP_ZB_ZCL_CLUSTER_ID_GREEN_LIGHT_ON_OFF:

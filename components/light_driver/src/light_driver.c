@@ -102,22 +102,66 @@ void flash_task(void *arg)
     }
 }
 
-void light_driver_set_red_light(bool on)
+void light_driver_set_red_light(void *arg)
 {
-    s_red = on ? 255 : 0;
+    s_red = 255;
+    s_green = 0;
+    s_blue = 0;
     light_driver_set_color_RGB(s_red, s_green, s_blue);
+    while (1)
+    {
+        light_driver_set_level(255);
+        vTaskDelay(pdMS_TO_TICKS(50));
+
+        light_driver_set_level(0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
-void light_driver_set_green_light(bool on)
+void light_driver_set_yellow_light(void *arg)
 {
-    s_green = on ? 255 : 0;
+    s_red = 255;
+    s_green = 255;
+    s_blue = 0;
     light_driver_set_color_RGB(s_red, s_green, s_blue);
+    while (1)
+    {
+        light_driver_set_level(255);
+        vTaskDelay(pdMS_TO_TICKS(50));
+
+        light_driver_set_level(0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
-void light_driver_set_white_light(bool on)
+void light_driver_set_green_light(void *arg)
 {
-    s_red = on ? 255 : 0;
-    s_green = on ? 255 : 0;
-    s_blue = on ? 255 : 0;
+    s_red = 0;
+    s_green = 255;
+    s_blue = 0;
     light_driver_set_color_RGB(s_red, s_green, s_blue);
+    while (1)
+    {
+        light_driver_set_level(255);
+        vTaskDelay(pdMS_TO_TICKS(50));
+
+        light_driver_set_level(0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+void light_driver_set_white_light(void *arg)
+{
+    s_red = 255;
+    s_green = 255;
+    s_blue = 255;
+    light_driver_set_color_RGB(s_red, s_green, s_blue);
+    while (1)
+    {
+        light_driver_set_level(255);
+        vTaskDelay(pdMS_TO_TICKS(50));
+
+        light_driver_set_level(0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
