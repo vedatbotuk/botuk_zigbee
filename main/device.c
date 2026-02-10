@@ -150,10 +150,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 {
     esp_err_t ret = ESP_OK;
     bool light_state = 0;
-#ifdef BUILTIN_LIGHT
-    uint16_t light_color_x = 0;
-    uint16_t light_color_y = 0;
-#endif
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
@@ -201,9 +197,10 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 if (light_state)
                 {
                     if (flash_task_handle == NULL)
-                    {                        
+                    {
                         ESP_LOGI(TAG, "Started flashing red light");
-                    } else
+                    }
+                    else
                     {
                         vTaskDelete(flash_task_handle);
                         ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
@@ -228,8 +225,30 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Yellow light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_green_light(light_state);
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing yellow light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash yellow light");
+                    }
+                    xTaskCreate(light_driver_set_yellow_light, "light_driver_set_yellow_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing yellow light");
+                    }
+                    light_driver_set_power(false); // ensure LED is off
+                }
             }
             break;
         case ESP_ZB_ZCL_CLUSTER_ID_GREEN_LIGHT_ON_OFF:
@@ -237,8 +256,30 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Green light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_green_light(light_state);
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing green light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash green light");
+                    }
+                    xTaskCreate(light_driver_set_green_light, "light_driver_set_green_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing green light");
+                    }
+                    light_driver_set_power(false); // ensure LED is off
+                }
             }
             break;
         case ESP_ZB_ZCL_CLUSTER_ID_WHITE_LIGHT_ON_OFF:
@@ -246,8 +287,30 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "White light sets to %s", light_state ? "On" : "Off");
-                light_driver_set_white_light(light_state);
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing white light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash white light");
+                    }
+                    xTaskCreate(light_driver_set_white_light, "light_driver_set_white_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing white light");
+                    }
+                    light_driver_set_power(false); // ensure LED is off
+                }
             }
             break;
         default:

@@ -121,12 +121,12 @@ void light_driver_set_red_light(void *arg)
 void light_driver_set_yellow_light(void *arg)
 {
     s_red = 255;
-    s_green = 255;
+    s_green = 200;
     s_blue = 0;
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(255);
+        light_driver_set_level(100);
         vTaskDelay(pdMS_TO_TICKS(50));
 
         light_driver_set_level(0);
@@ -142,7 +142,7 @@ void light_driver_set_green_light(void *arg)
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(255);
+        light_driver_set_level(10);
         vTaskDelay(pdMS_TO_TICKS(50));
 
         light_driver_set_level(0);
@@ -158,7 +158,7 @@ void light_driver_set_white_light(void *arg)
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(255);
+        light_driver_set_level(10);
         vTaskDelay(pdMS_TO_TICKS(50));
 
         light_driver_set_level(0);

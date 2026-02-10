@@ -283,7 +283,7 @@ void create_builtin_light_red(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_light_red_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF);
     esp_zb_custom_cluster_add_custom_attr(
         esp_zb_light_red_cluster, ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID, ESP_ZB_ZCL_ATTR_TYPE_BOOL,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &undefined_value);
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_light_red_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
@@ -293,7 +293,7 @@ void create_builtin_light_yellow(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_light_yellow_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_YELLOW_LIGHT_ON_OFF);
     esp_zb_custom_cluster_add_custom_attr(
         esp_zb_light_yellow_cluster, ESP_ZB_ZCL_ATTR_YELLOW_LIGHT_ON_OFF_ID, ESP_ZB_ZCL_ATTR_TYPE_BOOL,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &undefined_value);
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_light_yellow_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
@@ -303,7 +303,7 @@ void create_builtin_light_green(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_light_green_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_GREEN_LIGHT_ON_OFF);
     esp_zb_custom_cluster_add_custom_attr(
         esp_zb_light_green_cluster, ESP_ZB_ZCL_ATTR_GREEN_LIGHT_ON_OFF_ID, ESP_ZB_ZCL_ATTR_TYPE_BOOL,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &undefined_value);
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_light_green_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
@@ -313,6 +313,6 @@ void create_builtin_light_white(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_light_white_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_WHITE_LIGHT_ON_OFF);
     esp_zb_custom_cluster_add_custom_attr(
         esp_zb_light_white_cluster, ESP_ZB_ZCL_ATTR_WHITE_LIGHT_ON_OFF_ID, ESP_ZB_ZCL_ATTR_TYPE_BOOL,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &undefined_value);
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_light_white_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
