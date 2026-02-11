@@ -1,117 +1,149 @@
-const exposes = require('zigbee-herdsman-converters/lib/exposes');
-const ea = exposes.access;
+const {
+    binary,
+    deviceAddCustomCluster
+} = require('zigbee-herdsman-converters/lib/modernExtend');
+
+const { logger } = require('zigbee-herdsman-converters/lib/logger');
+// const exposes = require('zigbee-herdsman-converters/lib/exposes');
+// const ea = exposes.presets;
+
+const NS = 'zhc:botuk';
 
 /**
- * Helper: write ON/OFF attribute to custom cluster
- * We use the numeric cluster ID and explicit data type to bypass 
- * some of the internal validation checks.
+ * Custom Clusters Definition
  */
-function channelToZigbee(clusterName, exposeName) {
-    return {
-        key: [exposeName],
-        convertSet: async (entity, key, value, meta) => {
-            const on = value === 'ON' || value === 1 || value === true ? 1 : 0;
-            
-            // Look up the cluster ID from our customClusters definition
-            const clusterId = meta.mapped.customClusters[clusterName].ID;
+const addCustomClusters = () => [
+    deviceAddCustomCluster('redLight', {
+        ID: 0xFC07,
+        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('yellowLight', {
+        ID: 0xFC08,
+        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('greenLight', {
+        ID: 0xFC09,
+        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('whiteLight', {
+        ID: 0xFC0A,
+        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        commands: {}, commandsResponse: {},
+    })
+];
 
-            try {
-                // We use the raw attribute ID (0x0000) and type (0x10 = Boolean)
-                await entity.write(
-                    clusterId,
-                    { 0x0000: { value: on, type: 0x10 } },
-                    { 
-                        manufacturerCode: null, 
-                        disableResponse: false, // Set to false to see if device ACKs
-                    }
-                );
-
-                return { state: { [exposeName]: on ? 'ON' : 'OFF' } };
-            } catch (error) {
-                throw new Error(`Failed to write ${exposeName} to cluster ${clusterName}: ${error.message}`);
-            }
-        },
-    };
-}
-
-/**
- * Helper: parse attribute reports
- */
-function channelFromZigbee(clusterName, exposeName) {
-    return {
-        cluster: clusterName,
-        type: ['attributeReport', 'readResponse'],
-        convert: (model, msg) => {
-            if (msg.data.onOff !== undefined) {
-                return {
-                    [exposeName]: msg.data.onOff ? 'ON' : 'OFF',
-                };
-            }
-            // Also handle raw attribute ID if name isn't resolved
-            if (msg.data[0] !== undefined) {
-                return {
-                    [exposeName]: msg.data[0] ? 'ON' : 'OFF',
-                };
-            }
-        },
-    };
-}
-
-module.exports = {
+const definition = {
     zigbeeModel: ['50304'],
     model: '50304',
     vendor: 'Botuk',
-    description: 'ESP32H2 RGBW LED (custom attribute clusters)',
+    description: 'ESP32H2 LED status indicator',
 
-    customClusters: {
-        redLight: {
-            ID: 0xFC07,
-            attributes: {
-                onOff: { ID: 0x0000, type: 0x10 },
-            },
+    extend: [
+        ...addCustomClusters(),
+
+        // Using name: 'state_red' here creates the 'state_red' expose automatically
+        binary({
+            name: 'state_red',
+            cluster: 'redLight',
+            attribute: 'onOff',
+            valueOn: ['ON', 1],
+            valueOff: ['OFF', 0],
+            description: 'Red LED on/off state',
+            reporting: { min: 1, max: 3600, change: 1 },
+            access: 'ALL', // This enables GET, SET, and STATE (reporting)
+        }),
+        binary({
+            name: 'state_yellow',
+            cluster: 'yellowLight',
+            attribute: 'onOff',
+            valueOn: ['ON', 1],
+            valueOff: ['OFF', 0],
+            description: 'Yellow LED on/off state',
+            reporting: { min: 1, max: 3600, change: 1 },
+            access: 'ALL',
+        }),
+        binary({
+            name: 'state_green',
+            cluster: 'greenLight',
+            attribute: 'onOff',
+            valueOn: ['ON', 1],
+            valueOff: ['OFF', 0],
+            description: 'Green LED on/off state',
+            reporting: { min: 1, max: 3600, change: 1 },
+            access: 'ALL',
+        }),
+        binary({
+            name: 'state_white',
+            cluster: 'whiteLight',
+            attribute: 'onOff',
+            valueOn: ['ON', 1],
+            valueOff: ['OFF', 0],
+            description: 'White LED on/off state',
+            reporting: { min: 1, max: 3600, change: 1 },
+            access: 'ALL',
+        }),
+    ],
+
+    fromZigbee: [{
+        cluster: /.*Light/, // Matches redLight, yellowLight, etc.
+        type: ['attributeReport', 'readResponse'],
+        convert: (model, msg, publish, options, meta) => {
+            const state = msg.data['onOff'] !== undefined ? (msg.data['onOff'] ? 'ON' : 'OFF') : null;
+            if (state) {
+                // Map cluster ID back to our state name
+                const clusterMap = { 0xFC07: 'state_red', 0xFC08: 'state_yellow', 0xFC09: 'state_green', 0xFC0A: 'state_white' };
+                return { [clusterMap[msg.cluster]]: state };
+            }
         },
-        yellowLight: {
-            ID: 0xFC08,
-            attributes: {
-                onOff: { ID: 0x0000, type: 0x10 },
-            },
+    }],
+
+    toZigbee: [{
+        key: ['state_red', 'state_yellow', 'state_green', 'state_white'],
+        convertSet: async (entity, key, value, meta) => {
+            const clusterMap = { 'state_red': 0xFC07, 'state_yellow': 0xFC08, 'state_green': 0xFC09, 'state_white': 0xFC0A };
+            const clusterId = clusterMap[key];
+            const on = value.toLowerCase() === 'on' ? 1 : 0;
+
+            // This is the direct write that bypasses the "not writable" check
+            await entity.write(clusterId, { 0x0000: { value: on, type: 0x10 } });
+
+            return { state: { [key]: value.toUpperCase() } };
         },
-        greenLight: {
-            ID: 0xFC09,
-            attributes: {
-                onOff: { ID: 0x0000, type: 0x10 },
-            },
+        convertGet: async (entity, key, meta) => {
+            const clusterMap = { 'state_red': 0xFC07, 'state_yellow': 0xFC08, 'state_green': 0xFC09, 'state_white': 0xFC0A };
+            await entity.read(clusterMap[key], ['onOff']);
         },
-        whiteLight: {
-            ID: 0xFC0A,
-            attributes: {
-                onOff: { ID: 0x0000, type: 0x10 },
-            },
-        },
+    }],
+
+    // exposes: [
+    //     exposes.binary('state_red', ea.ALL, 'ON', 'OFF').withDescription('Red LED'),
+    //     exposes.binary('state_yellow', ea.ALL, 'ON', 'OFF').withDescription('Yellow LED'),
+    //     exposes.binary('state_green', ea.ALL, 'ON', 'OFF').withDescription('Green LED'),
+    //     exposes.binary('state_white', ea.ALL, 'ON', 'OFF').withDescription('White LED'),
+    // ],
+
+    configure: async (device, coordinatorEndpoint) => {
+        const endpoint = device.getEndpoint(1);
+        const clusters = [0xFC07, 0xFC08, 0xFC09, 0xFC0A];
+        for (const cluster of clusters) {
+            try {
+                await endpoint.bind(cluster, coordinatorEndpoint);
+                await endpoint.configureReporting(cluster, [{
+                    attribute: 'onOff',
+                    minimumReportInterval: 1,
+                    maximumReportInterval: 3600,
+                    reportableChange: 1
+                }]);
+                logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
+            } catch (error) {
+                logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
+            }
+        }
     },
-
-    toZigbee: [
-        channelToZigbee('redLight', 'state_red'),
-        channelToZigbee('yellowLight', 'state_yellow'),
-        channelToZigbee('greenLight', 'state_green'),
-        channelToZigbee('whiteLight', 'state_white'),
-    ],
-
-    fromZigbee: [
-        channelFromZigbee('redLight', 'state_red'),
-        channelFromZigbee('yellowLight', 'state_yellow'),
-        channelFromZigbee('greenLight', 'state_green'),
-        channelFromZigbee('whiteLight', 'state_white'),
-    ],
-
-    exposes: [
-        exposes.binary('state_red', ea.STATE_SET, 'ON', 'OFF')
-            .withDescription('Red channel'),
-        exposes.binary('state_yellow', ea.STATE_SET, 'ON', 'OFF')
-            .withDescription('Yellow channel'),
-        exposes.binary('state_green', ea.STATE_SET, 'ON', 'OFF')
-            .withDescription('Green channel'),
-        exposes.binary('state_white', ea.STATE_SET, 'ON', 'OFF')
-            .withDescription('White channel'),
-    ],
 };
+
+
+module.exports = definition;
