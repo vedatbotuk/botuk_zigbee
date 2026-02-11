@@ -143,6 +143,8 @@ const definition = {
             }
         }
     },
+    
+    ota: true
 };
 
 
