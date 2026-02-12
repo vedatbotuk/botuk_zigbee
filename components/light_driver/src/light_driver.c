@@ -20,49 +20,19 @@
 static led_strip_handle_t s_led_strip;
 static uint8_t s_red = 255, s_green = 255, s_blue = 255, s_level = 255;
 
-void light_driver_set_color_xy(uint16_t color_current_x, uint16_t color_current_y)
-{
-    float red_f = 0, green_f = 0, blue_f = 0, color_x, color_y;
-    color_x = (float)color_current_x / 65535;
-    color_y = (float)color_current_y / 65535;
-    /* assume color_Y is full light level value 1  (0-1.0) */
-    float color_X = color_x / color_y;
-    float color_Z = (1 - color_x - color_y) / color_y;
-    /* change from xy to linear RGB NOT sRGB */
-    XYZ_to_RGB(color_X, 1, color_Z, red_f, green_f, blue_f);
-    float ratio = (float)s_level / 255;
-    s_red = (uint8_t)(red_f * (float)255);
-    s_green = (uint8_t)(green_f * (float)255);
-    s_blue = (uint8_t)(blue_f * (float)255);
-    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_green * ratio, s_red * ratio, s_blue * ratio));
-    ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
-}
-
-void light_driver_set_color_hue_sat(uint8_t hue, uint8_t sat)
-{
-    float red_f, green_f, blue_f;
-    HSV_to_RGB(hue, sat, UINT8_MAX, red_f, green_f, blue_f);
-    float ratio = (float)s_level / 255;
-    s_red = (uint8_t)red_f;
-    s_green = (uint8_t)green_f;
-    s_blue = (uint8_t)blue_f;
-    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_green * ratio, s_red * ratio, s_blue * ratio));
-    ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
-}
-
 void light_driver_set_color_RGB(uint8_t red, uint8_t green, uint8_t blue)
 {
     float ratio = (float)s_level / 255;
     s_red = red;
     s_green = green;
     s_blue = blue;
-    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, green * ratio, red * ratio, blue * ratio));
+    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, red * ratio, green * ratio, blue * ratio));
     ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
 }
 
 void light_driver_set_power(bool power)
 {
-    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_green * power, s_red * power, s_blue * power));
+    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_red * power, s_green * power, s_blue * power));
     ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
 }
 
@@ -70,12 +40,17 @@ void light_driver_set_level(uint8_t level)
 {
     s_level = level;
     float ratio = (float)s_level / 255;
-    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_green * ratio, s_red * ratio, s_blue * ratio));
+    ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_red * ratio, s_green * ratio, s_blue * ratio));
     ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
 }
 
 void light_driver_init(bool power)
 {
+    if (s_led_strip != NULL)
+    {
+        ESP_LOGW("light_driver_init", "LED strip already initialized");
+        return;
+    }
     led_strip_config_t led_strip_conf = {
         .max_leds = CONFIG_EXAMPLE_STRIP_LED_NUMBER,
         .strip_gpio_num = CONFIG_EXAMPLE_STRIP_LED_GPIO,
@@ -87,6 +62,22 @@ void light_driver_init(bool power)
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&led_strip_conf, &rmt_conf, &s_led_strip));
 
     light_driver_set_power(power);
+}
+
+void light_driver_deinit()
+{
+    if (s_led_strip)
+    {
+        // Turn off all LEDs
+        led_strip_clear(s_led_strip);
+        led_strip_refresh(s_led_strip);
+
+        // Delete RMT device (VERY IMPORTANT)
+        led_strip_del(s_led_strip);
+        // ESP_LOGI("light_driver_deinit", "LED strip deinitialized and resources freed");
+
+        s_led_strip = NULL;
+    }
 }
 
 void flash_task(void *arg)
@@ -107,14 +98,20 @@ void light_driver_set_red_light(void *arg)
     s_red = 255;
     s_green = 0;
     s_blue = 0;
+    uint8_t level = 255;
+    light_driver_init(true);
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(255);
-        vTaskDelay(pdMS_TO_TICKS(50));
+        light_driver_init(false);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_set_level(level);
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_deinit();
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
 
@@ -123,14 +120,20 @@ void light_driver_set_yellow_light(void *arg)
     s_red = 255;
     s_green = 200;
     s_blue = 0;
+    uint8_t level = 120;
+    light_driver_init(true);
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(100);
-        vTaskDelay(pdMS_TO_TICKS(50));
+        light_driver_init(false);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_set_level(level);
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_deinit();
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
 
@@ -139,14 +142,20 @@ void light_driver_set_green_light(void *arg)
     s_red = 0;
     s_green = 255;
     s_blue = 0;
+    uint8_t level = 120;
+    light_driver_init(true);
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(10);
-        vTaskDelay(pdMS_TO_TICKS(50));
+        light_driver_init(false);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_set_level(level);
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_deinit();
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
 
@@ -155,13 +164,19 @@ void light_driver_set_white_light(void *arg)
     s_red = 255;
     s_green = 255;
     s_blue = 255;
+    uint8_t level = 120;
+    light_driver_init(true);
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)
     {
-        light_driver_set_level(10);
-        vTaskDelay(pdMS_TO_TICKS(50));
+        light_driver_init(false);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_set_level(level);
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10));
+        light_driver_deinit();
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }

@@ -220,7 +220,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         ESP_LOGI(TAG, "Stopped flashing red light");
                         zb_update_builtin_light_flash_red(0);
                     }
-                    light_driver_set_power(false); // ensure LED is off
+                    light_driver_deinit();
                 }
             }
             break;
@@ -255,7 +255,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         ESP_LOGI(TAG, "Stopped flashing yellow light");
                         zb_update_builtin_light_flash_yellow(0);
                     }
-                    light_driver_set_power(false); // ensure LED is off
+                    light_driver_deinit();
                 }
             }
             break;
@@ -290,7 +290,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         ESP_LOGI(TAG, "Stopped flashing green light");
                         zb_update_builtin_light_flash_green(0);
                     }
-                    light_driver_set_power(false); // ensure LED is off
+                    light_driver_deinit();
                 }
             }
             break;
@@ -325,7 +325,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         ESP_LOGI(TAG, "Stopped flashing white light");
                         zb_update_builtin_light_flash_white(0);
                     }
-                    light_driver_set_power(false); // ensure LED is off
+                    light_driver_deinit();
                 }
             }
             break;
@@ -529,19 +529,6 @@ void app_main(void)
 #endif
 #ifdef SWITCH_FEATURES
     ESP_LOGI(TAG, "Deferred driver initialization %s", switch_driver_init(SWITCH_DEFAULT_OFF) ? "failed" : "successful");
-#endif
-// TODO ESP_LOGI above does not work.
-#if defined BUILTIN_LIGHT
-    static bool is_inited = false;
-    if (!is_inited)
-    {
-        // light_driver_init(LIGHT_DEFAULT_OFF);
-        is_inited = true;
-    }
-    // TODO: light_driver_set_power off
-    light_driver_init(LIGHT_DEFAULT_OFF);
-
-    ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");
 #endif
 #if !defined DEEP_SLEEP
 #if defined DHT22
