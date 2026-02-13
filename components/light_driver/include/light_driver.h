@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <math.h>
+#include "led_strip.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,50 +30,6 @@ extern "C" {
 /* LED strip configuration */
 #define CONFIG_EXAMPLE_STRIP_LED_GPIO   8
 #define CONFIG_EXAMPLE_STRIP_LED_NUMBER 1
-
-
-/** Convert Hue,Saturation,V to RGB
- * RGB - [0..0xffff]
- * hue - [0..0xff]
- * Sat - [0..0xff]
- * V always = (ZB_UINT16_MAX-1)
-*/
-#define HSV_to_RGB(h, s, v, r, g, b )           \
-{                                               \
-  uint8_t i;                                    \
-  uint8_t sector = UINT8_MAX/6;                 \
-  float f, p, q, t;                             \
-  if( s == 0 ) {  /* achromatic (grey)*/        \
-    r = g = b = (v);                            \
-  }                                             \
-  else                                          \
-  {                                             \
-    i = h / sector;  /* sector 0 to 5 */        \
-    f = h % sector; /* factorial part of h*/    \
-    p = (float)(v * ( 1.0 - (float)s/UINT8_MAX ));                            \
-    q = (float)(v * ( 1.0 - (float)s/UINT8_MAX * f/(float)sector ));          \
-    t = (float)(v * ( 1.0 - (float)s/UINT8_MAX * ( 1 - f/(float)sector ) ));  \
-    switch( i ) {                               \
-      case 0: r = (v); g = t; b = p; break;     \
-      case 1: r = q; g = (v); b = p; break;     \
-      case 2: r = p; g = (v); b = t; break;     \
-      case 3: r = p; g = q; b = (v); break;     \
-      case 4: r = t; g = p; b = (v); break;     \
-      case 5:                                   \
-      default: r = (v); g = p; b = q; break;    \
-    }                                           \
-  }                                             \
-}
-
-#define XYZ_to_RGB(X, Y, Z, r, g, b)                        \
-{                                                           \
-  r = (float)( 3.240479*(X) -1.537150*(Y) -0.498535*(Z));   \
-  g = (float)(-0.969256*(X) +1.875992*(Y) +0.041556*(Z));   \
-  b = (float)( 0.055648*(X) -0.204043*(Y) +1.057311*(Z));   \
-  if(r>1){r=1;}                                             \
-  if(g>1){g=1;}                                             \
-  if(b>1){b=1;}                                             \
-}
 
 /**
 * @brief Set light power (on/off).
@@ -87,6 +44,11 @@ void light_driver_set_power(bool power);
 * @param power power on/off
 */
 void light_driver_init(bool power);
+
+/**
+ * @brief Deinitialize the light driver, free resources
+ */
+void light_driver_deinit();
 
 /**
 * @brief Set light level
@@ -104,26 +66,30 @@ void light_driver_set_level(uint8_t level);
 */
 void light_driver_set_color_RGB(uint8_t red, uint8_t green, uint8_t blue);
 
-/**
-* @brief Set light color from color xy
-*
-* @param  color_currentx  The color x to be set
-* @param  color_currenty  The color y to be set
+/* @brief Set red light on/off
+* @param  on  The red light on/off to be set
 */
-void light_driver_set_color_xy(uint16_t color_current_x, uint16_t color_current_y);
+void light_driver_set_red_light(void *arg);
 
-/**
-* @brief Set light color from hue saturation
-*
-* @param  hue  The hue to be set
-* @param  sat  The sat to be set
+/* @brief Set yellow light on/off
+* @param  on  The yellow light on/off to be set
 */
-void light_driver_set_color_hue_sat(uint8_t hue, uint8_t sat);
+void light_driver_set_yellow_light(void *arg);
 
-/* @brief Flash task for light driver
-* @param  arg  The argument to be set
+/* @brief Set green light on/off
+* @param  on  The green light on/off to be set
 */
-void flash_task(void *arg);
+void light_driver_set_green_light(void *arg);
+
+/* @brief Set white light on/off
+* @param  on  The white light on/off to be set
+*/
+void light_driver_set_white_light(void *arg);
+
+/* @brief Light driver loop for flashing light
+* @param  level  The light level to be set
+*/
+void light_driver_loop(uint8_t level);
 
 #ifdef __cplusplus
 } // extern "C"

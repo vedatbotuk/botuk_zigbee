@@ -29,6 +29,18 @@
 #define ESP_ZB_ZCL_CLUSTER_ID_GAS_RESISTANCE_MEASUREMENT 0xFC06
 #define ESP_ZB_ZCL_ATTR_GAS_RESISTANCE_MEASUREMENT_VALUE_ID 0x0000
 
+#define ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF 0xFC07
+#define ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID 0x0000
+
+#define ESP_ZB_ZCL_CLUSTER_ID_YELLOW_LIGHT_ON_OFF 0xFC08
+#define ESP_ZB_ZCL_ATTR_YELLOW_LIGHT_ON_OFF_ID 0x0000
+
+#define ESP_ZB_ZCL_CLUSTER_ID_GREEN_LIGHT_ON_OFF 0xFC09
+#define ESP_ZB_ZCL_ATTR_GREEN_LIGHT_ON_OFF_ID 0x0000
+
+#define ESP_ZB_ZCL_CLUSTER_ID_WHITE_LIGHT_ON_OFF 0xFC0A
+#define ESP_ZB_ZCL_ATTR_WHITE_LIGHT_ON_OFF_ID 0x0000
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -47,6 +59,10 @@ extern "C"
     void create_iaq_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
     void create_gas_resistance_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
     void create_co2_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_builtin_light_red(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_builtin_light_yellow(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_builtin_light_green(esp_zb_cluster_list_t *esp_zb_cluster_list);
+    void create_builtin_light_white(esp_zb_cluster_list_t *esp_zb_cluster_list);
 
 #ifdef __cplusplus
 }

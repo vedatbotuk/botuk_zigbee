@@ -43,5 +43,13 @@ void zb_update_bvoc(float bvoc);
 void zb_report_bvoc();
 void zb_update_gas_resistance(float gas_resistance);
 void zb_report_gas_resistance();
+void zb_update_builtin_light_flash_red(uint8_t flash_status);
+void zb_update_builtin_light_flash_yellow(uint8_t flash_status);
+void zb_update_builtin_light_flash_green(uint8_t flash_status);
+void zb_update_builtin_light_flash_white(uint8_t flash_status);
+void zb_report_builtin_light_flash_red();
+void zb_report_builtin_light_flash_yellow();
+void zb_report_builtin_light_flash_green();
+void zb_report_builtin_light_flash_white();
 
 #endif // ZB_TEMP_SENSOR_H
