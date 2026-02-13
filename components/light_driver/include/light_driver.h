@@ -66,11 +66,6 @@ void light_driver_set_level(uint8_t level);
 */
 void light_driver_set_color_RGB(uint8_t red, uint8_t green, uint8_t blue);
 
-/* @brief Flash task for light driver
-* @param  arg  The argument to be set
-*/
-void flash_task(void *arg);
-
 /* @brief Set red light on/off
 * @param  on  The red light on/off to be set
 */
@@ -90,6 +85,11 @@ void light_driver_set_green_light(void *arg);
 * @param  on  The white light on/off to be set
 */
 void light_driver_set_white_light(void *arg);
+
+/* @brief Light driver loop for flashing light
+* @param  level  The light level to be set
+*/
+void light_driver_loop(uint8_t level);
 
 #ifdef __cplusplus
 } // extern "C"

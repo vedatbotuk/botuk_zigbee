@@ -80,39 +80,13 @@ void light_driver_deinit()
     }
 }
 
-void flash_task(void *arg)
-{
-    while (1)
-    {
-        light_driver_set_level(50);
-
-        vTaskDelay(pdMS_TO_TICKS(50));
-
-        light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
-
 void light_driver_set_red_light(void *arg)
 {
     s_red = 255;
     s_green = 0;
     s_blue = 0;
     uint8_t level = 255;
-    light_driver_init(true);
-    light_driver_set_color_RGB(s_red, s_green, s_blue);
-    while (1)
-    {
-        light_driver_init(false);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        light_driver_set_level(level);
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        light_driver_deinit();
-        vTaskDelay(pdMS_TO_TICKS(3000));
-    }
+    light_driver_loop(level);
 }
 
 void light_driver_set_yellow_light(void *arg)
@@ -121,20 +95,7 @@ void light_driver_set_yellow_light(void *arg)
     s_green = 200;
     s_blue = 0;
     uint8_t level = 120;
-    light_driver_init(true);
-    light_driver_set_color_RGB(s_red, s_green, s_blue);
-    while (1)
-    {
-        light_driver_init(false);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        light_driver_set_level(level);
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        light_driver_deinit();
-        vTaskDelay(pdMS_TO_TICKS(3000));
-    }
+    light_driver_loop(level);
 }
 
 void light_driver_set_green_light(void *arg)
@@ -143,20 +104,7 @@ void light_driver_set_green_light(void *arg)
     s_green = 255;
     s_blue = 0;
     uint8_t level = 120;
-    light_driver_init(true);
-    light_driver_set_color_RGB(s_red, s_green, s_blue);
-    while (1)
-    {
-        light_driver_init(false);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        light_driver_set_level(level);
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        light_driver_set_level(0);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        light_driver_deinit();
-        vTaskDelay(pdMS_TO_TICKS(3000));
-    }
+    light_driver_loop(level);
 }
 
 void light_driver_set_white_light(void *arg)
@@ -165,6 +113,11 @@ void light_driver_set_white_light(void *arg)
     s_green = 255;
     s_blue = 255;
     uint8_t level = 120;
+    light_driver_loop(level);
+}
+
+void light_driver_loop(uint8_t level)
+{
     light_driver_init(true);
     light_driver_set_color_RGB(s_red, s_green, s_blue);
     while (1)

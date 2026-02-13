@@ -218,9 +218,12 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         vTaskDelete(flash_task_handle);
                         flash_task_handle = NULL;
                         ESP_LOGI(TAG, "Stopped flashing red light");
-                        zb_update_builtin_light_flash_red(0);
                     }
                     light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
             }
             break;
@@ -253,9 +256,12 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         vTaskDelete(flash_task_handle);
                         flash_task_handle = NULL;
                         ESP_LOGI(TAG, "Stopped flashing yellow light");
-                        zb_update_builtin_light_flash_yellow(0);
                     }
                     light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
             }
             break;
@@ -288,9 +294,12 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         vTaskDelete(flash_task_handle);
                         flash_task_handle = NULL;
                         ESP_LOGI(TAG, "Stopped flashing green light");
-                        zb_update_builtin_light_flash_green(0);
                     }
                     light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
             }
             break;
@@ -323,9 +332,12 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         vTaskDelete(flash_task_handle);
                         flash_task_handle = NULL;
                         ESP_LOGI(TAG, "Stopped flashing white light");
-                        zb_update_builtin_light_flash_white(0);
                     }
                     light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
             }
             break;
