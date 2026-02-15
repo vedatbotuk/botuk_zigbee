@@ -10,37 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensure full history is fetched for comparison
+          fetch-depth: 0
 
-      - name: Get FIRMWARE_VERSION and VERSION from main
-        id: main_values
+      - name: Get values from main (base branch)
         run: |
-          # Fetch main branch for comparison
-          git fetch origin main:main
-          # Extract values from main branch
-          MAIN_FIRMWARE_VERSION=$(git show main:settings.conf | grep "^FIRMWARE_VERSION=" | cut -d '=' -f 2)
-          MAIN_VERSION=$(git show main:settings.conf | grep "^VERSION=" | cut -d '=' -f 2)
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+
+          MAIN_FIRMWARE_VERSION=$(git show $BASE_SHA:settings.conf | grep "^FIRMWARE_VERSION=" | cut -d '=' -f 2)
+          MAIN_VERSION=$(git show $BASE_SHA:settings.conf | grep "^VERSION=" | cut -d '=' -f 2)
+
           echo "main_firmware_version=$MAIN_FIRMWARE_VERSION" >> $GITHUB_ENV
           echo "main_version=$MAIN_VERSION" >> $GITHUB_ENV
 
-      - name: Get FIRMWARE_VERSION and VERSION from dev
-        id: dev_values
+      - name: Get values from PR branch
         run: |
-          # Extract values from dev branch (current branch)
           DEV_FIRMWARE_VERSION=$(grep "^FIRMWARE_VERSION=" settings.conf | cut -d '=' -f 2)
           DEV_VERSION=$(grep "^VERSION=" settings.conf | cut -d '=' -f 2)
+
           echo "dev_firmware_version=$DEV_FIRMWARE_VERSION" >> $GITHUB_ENV
           echo "dev_version=$DEV_VERSION" >> $GITHUB_ENV
 
-      - name: Check if versions have changed
+      - name: Compare
         run: |
-          # Compare versions from dev and main
+          echo "Main firmware: $main_firmware_version"
+          echo "Dev firmware: $dev_firmware_version"
+          echo "Main version: $main_version"
+          echo "Dev version: $dev_version"
+
           if [[ "$main_firmware_version" == "$dev_firmware_version" ]] || [[ "$main_version" == "$dev_version" ]]; then
             echo "Error: FIRMWARE_VERSION or VERSION have not changed."
             exit 1
           else
-            echo "Success: FIRMWARE_VERSION or VERSION has changed."
+            echo "Success: Version has changed."
           fi
