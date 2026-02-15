@@ -31,5 +31,6 @@ jobs:
       - name: Build Project
         run: |
           . $HOME/esp/esp-idf/export.sh
+          idf.py fullclean
           idf.py set-target esp32h2  # Set target for ESP32-H2
           idf.py build
