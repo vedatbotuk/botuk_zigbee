@@ -129,7 +129,7 @@ Docker container for gitlab ci/cd. This container build source code.
 
 1. Build the Docker Image
 ```bash
-docker build -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
+docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
 ```
 
 1. Push the Docker Image

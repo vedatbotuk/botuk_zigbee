@@ -1,5 +1,7 @@
-# setup_env.sh
 #!/bin/bash
+
+# Read version from file
+ESP_IDF_VERSION=$(cat esp_idf_version.txt)
 
 # Install dependencies
 sudo apt-get update
@@ -8,7 +10,7 @@ sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-ve
 # Install ESP-IDF
 mkdir -p ~/esp
 cd ~/esp
-git clone -b v5.2.3 --recursive https://github.com/espressif/esp-idf.git
+git clone -b "$ESP_IDF_VERSION" --recursive https://github.com/espressif/esp-idf.git
 cd ~/esp/esp-idf
 ./install.sh esp32h2
 

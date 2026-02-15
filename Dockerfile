@@ -5,7 +5,8 @@ FROM ubuntu:latest
 ENV HOME=/root
 
 # Define ARGs for maintainability
-ARG ESP_IDF_VERSION=5.5.1
+ARG ESP_IDF_VERSION
+ENV ESP_IDF_VERSION=${ESP_IDF_VERSION}
 ARG ESP_IDF_ZIP_URL=https://dl.espressif.com/github_assets/espressif/esp-idf/releases/download/v${ESP_IDF_VERSION}/esp-idf-v${ESP_IDF_VERSION}.zip
 ARG RELEASE_CLI_URL=https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64
 
