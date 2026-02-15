@@ -52,7 +52,7 @@ include:
       page_path: "technical/project/botuk_zigbee"
       page_title: "botuk_zigbee"
       filename: "README.md"
-  - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/check_version@~latest
+  - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/check_version@v1.5.5
     inputs:
       versionfile: "settings.conf"
       versionkey: "FIRMWARE_VERSION"
