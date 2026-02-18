@@ -103,18 +103,41 @@ const definition = {
     toZigbee: [{
         key: ['state_red', 'state_yellow', 'state_green', 'state_white'],
         convertSet: async (entity, key, value, meta) => {
-            const clusterMap = { 'state_red': 0xFC07, 'state_yellow': 0xFC08, 'state_green': 0xFC09, 'state_white': 0xFC0A };
+            const clusterMap = {
+                'state_red': 0xFC07,
+                'state_yellow': 0xFC08,
+                'state_green': 0xFC09,
+                'state_white': 0xFC0A,
+            };
+
             const clusterId = clusterMap[key];
             const on = value.toLowerCase() === 'on' ? 1 : 0;
 
-            // This is the direct write that bypasses the "not writable" check
-            await entity.write(clusterId, { 0x0000: { value: on, type: 0x10 } });
+            await entity.write(
+                clusterId,
+                { 0x0000: { value: on, type: 0x10 } },
+                {
+                    timeout: 30000,
+                    disableDefaultResponse: true
+                }
+            );
 
             return { state: { [key]: value.toUpperCase() } };
         },
+
         convertGet: async (entity, key, meta) => {
-            const clusterMap = { 'state_red': 0xFC07, 'state_yellow': 0xFC08, 'state_green': 0xFC09, 'state_white': 0xFC0A };
-            await entity.read(clusterMap[key], ['onOff']);
+            const clusterMap = {
+                'state_red': 0xFC07,
+                'state_yellow': 0xFC08,
+                'state_green': 0xFC09,
+                'state_white': 0xFC0A,
+            };
+
+            await entity.read(
+                clusterMap[key],
+                ['onOff'],
+                { timeout: 30000 }
+            );
         },
     }],
 
@@ -143,7 +166,7 @@ const definition = {
             }
         }
     },
-    
+
     ota: true
 };
 
