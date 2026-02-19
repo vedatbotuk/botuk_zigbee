@@ -119,7 +119,7 @@ void create_temp_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 void create_hum_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 {
     uint16_t undefined_value;
-    uint16_t humidity_max = 10000;
+    uint16_t humidity_max = 1000;
     uint16_t humidity_min = 0;
     esp_zb_attribute_list_t *esp_zb_hum_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT);
     esp_zb_humidity_meas_cluster_add_attr(esp_zb_hum_meas_cluster, ESP_ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID, &undefined_value);
