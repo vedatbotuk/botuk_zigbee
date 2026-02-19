@@ -35,7 +35,7 @@
 #include "light_sleep.h"
 #endif
 
-#if defined DEEP_SLEEP || BATTERY_FEATURES
+#if defined DEEP_SLEEP
 #include "deep_sleep.h"
 #endif
 
@@ -93,7 +93,7 @@ void measure_temp_hum()
 static TaskHandle_t flash_task_handle = NULL;
 #endif
 
-#if defined BATTERY_FEATURES && !defined DEEP_SLEEP
+#if defined BATTERY_FEATURES
 void measure_battery()
 {
     while (1)
@@ -118,11 +118,6 @@ void measure_battery()
 #endif
         }
 #endif
-        if (bat_lev < 5)
-        {
-            ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
-            start_deep_sleep();
-        }
 
 #if !defined TESTING
         vTaskDelay(pdMS_TO_TICKS(900000)); // 900000 ms = 15 minutes
@@ -536,7 +531,7 @@ void app_main(void)
 #ifdef LIGHT_SLEEP
     ESP_ERROR_CHECK(esp_zb_power_save_init());
 #endif
-#if defined DEEP_SLEEP || BATTERY_FEATURES
+#if defined DEEP_SLEEP
     zb_deep_sleep_init();
 #endif
 #ifdef SWITCH_FEATURES
