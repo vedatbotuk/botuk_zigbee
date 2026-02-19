@@ -2,6 +2,7 @@ const {
     temperature,
     humidity,
     co2,
+    pressure,
     numeric,
     deviceAddCustomCluster
 } = require('zigbee-herdsman-converters/lib/modernExtend');
@@ -42,16 +43,15 @@ const definition = {
 
     extend: [
         temperature({
-            reporting: {
-                min: 10,
-                max: 3600,
-                change: 10
-            }
+            reporting: { min: 10, max: 3600, change: 10 }
         }),
         humidity({
             reporting: { min: 10, max: 3600, change: 10 }
         }),
         co2({
+            reporting: { min: 10, max: 3600, change: 10 }
+        }),
+        pressure({
             reporting: { min: 10, max: 3600, change: 10 }
         }),
         ...addCustomClusters(),
