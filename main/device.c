@@ -458,6 +458,8 @@ static void esp_zb_task(void *pvParameters)
     ESP_LOGI(TAG, "Create CO2 Cluster");
     create_voc_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create BVOC Cluster");
+    create_pressure_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_PRESSURE Cluster");
 #endif
 
 #ifdef WATERLEAK_FEATURES

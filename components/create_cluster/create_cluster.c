@@ -128,6 +128,18 @@ void create_hum_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_cluster_list_add_humidity_meas_cluster(esp_zb_cluster_list, esp_zb_hum_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
+void create_pressure_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
+{
+    float_t undefined_value = 0.0f; // Use float
+    float_t pressure_max = 110000.0f; // Use float
+    float_t pressure_min = 30000.0f;  // Use float
+    esp_zb_attribute_list_t *esp_zb_pressure_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT);
+    esp_zb_pressure_meas_cluster_add_attr(esp_zb_pressure_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_VALUE_ID, &undefined_value);
+    esp_zb_pressure_meas_cluster_add_attr(esp_zb_pressure_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MIN_VALUE_ID, &pressure_min);
+    esp_zb_pressure_meas_cluster_add_attr(esp_zb_pressure_meas_cluster, ESP_ZB_ZCL_ATTR_PRESSURE_MEASUREMENT_MAX_VALUE_ID, &pressure_max);
+    esp_zb_cluster_list_add_pressure_meas_cluster(esp_zb_cluster_list, esp_zb_pressure_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+}
+
 void create_co2_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 {
     float_t undefined_value = 0.0f; // Use float
