@@ -29,7 +29,7 @@ void zb_update_temp(int16_t temperature);
 void zb_report_temp();
 void zb_update_hum(int humidity);
 void zb_report_hum();
-void zb_update_pressure(float pressure);
+void zb_update_pressure(int16_t pressure);
 void zb_report_pressure();
 void zb_update_battery_level(int level, int voltage);
 void zb_report_battery_level();

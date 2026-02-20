@@ -36,8 +36,8 @@ const addCustomClusters = () => [
 ];
 
 const definition = {
-    zigbeeModel: ['37888'],
-    model: '37888',
+    zigbeeModel: ['54272'],
+    model: '54272',
     vendor: 'Botuk',
     description: 'ESP32H2 Sensor Device Air Quality Sensor',
 
@@ -124,7 +124,7 @@ const definition = {
     ],
 
     configure: async (device, coordinatorEndpoint) => {
-        const endpoint = device.getEndpoint(1);
+        const endpoint = device.getEndpoint(10);
         const clusters = [0xFC04, 0xFC05, 0xFC06];
         for (const cluster of clusters) {
             try {
@@ -141,6 +141,7 @@ const definition = {
             }
         }
     },
+    ota: true,
 };
 
 module.exports = definition;

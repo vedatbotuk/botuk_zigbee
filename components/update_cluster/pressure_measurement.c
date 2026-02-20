@@ -22,7 +22,7 @@
 
 static const char *TAG_ZB_UPDATE_PRESSURE = "UPDATE_PRESSURE_CLUSTER";
 
-void zb_update_pressure(float pressure)
+void zb_update_pressure(int16_t pressure)
 {
     if (connection_status())
     {

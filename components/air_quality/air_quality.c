@@ -118,9 +118,6 @@ void sim_bsec_task(void *pvParameters)
 {
     ESP_LOGI(TAG_AIR_QUALITY, "Simulated BSEC Task Started");
 
-    vTaskDelay(pdMS_TO_TICKS(10000));
-    ESP_LOGI(TAG_AIR_QUALITY, "Simulated BSEC Task Initial Delay Completed. Starting sim bsec loop.");
-
     static float IAQ = 0.0f;
     static int accuracy = 6;
     static const char *acc_str = "Calibrated";
@@ -164,9 +161,6 @@ void sim_bsec_task(void *pvParameters)
 void bsec_task(void *pvParameters)
 {
     ESP_LOGI(TAG_AIR_QUALITY, "BSEC Task Started");
-
-    vTaskDelay(pdMS_TO_TICKS(10000));
-    ESP_LOGI(TAG_AIR_QUALITY, "BSEC Task Initial Delay Completed. Starting bsec loop.");
 
     // 1. Initialize I2C Master Bus
     i2c_master_bus_config_t bus_cfg = {
@@ -212,27 +206,28 @@ void bsec_task(void *pvParameters)
     ESP_LOGI(TAG_AIR_QUALITY, "BSEC Library Initialized");
 
     // 4. Subscribe to IAQ
-    bsec_sensor_configuration_t requested_virtual_sensors[6];
+    bsec_sensor_configuration_t requested_virtual_sensors[7];
     requested_virtual_sensors[0].sensor_id = BSEC_OUTPUT_IAQ;
     requested_virtual_sensors[0].sample_rate = BSEC_SAMPLE_RATE_ULP;
 
     requested_virtual_sensors[1].sensor_id = BSEC_OUTPUT_RAW_TEMPERATURE;
     requested_virtual_sensors[1].sample_rate = BSEC_SAMPLE_RATE_ULP;
 
-    requested_virtual_sensors[2].sensor_id = BSEC_OUTPUT_RAW_HUMIDITY;
+    requested_virtual_sensors[2].sensor_id = BSEC_OUTPUT_RAW_PRESSURE;
     requested_virtual_sensors[2].sample_rate = BSEC_SAMPLE_RATE_ULP;
 
-    requested_virtual_sensors[3].sensor_id = BSEC_OUTPUT_RAW_GAS;
+    requested_virtual_sensors[3].sensor_id = BSEC_OUTPUT_RAW_HUMIDITY;
     requested_virtual_sensors[3].sample_rate = BSEC_SAMPLE_RATE_ULP;
 
-    requested_virtual_sensors[4].sensor_id = BSEC_OUTPUT_CO2_EQUIVALENT;
+    requested_virtual_sensors[4].sensor_id = BSEC_OUTPUT_RAW_GAS;
     requested_virtual_sensors[4].sample_rate = BSEC_SAMPLE_RATE_ULP;
 
-    requested_virtual_sensors[5].sensor_id = BSEC_OUTPUT_BREATH_VOC_EQUIVALENT;
+    requested_virtual_sensors[5].sensor_id = BSEC_OUTPUT_CO2_EQUIVALENT;
     requested_virtual_sensors[5].sample_rate = BSEC_SAMPLE_RATE_ULP;
 
-    requested_virtual_sensors[6].sensor_id = BSEC_OUTPUT_RAW_PRESSURE;
+    requested_virtual_sensors[6].sensor_id = BSEC_OUTPUT_BREATH_VOC_EQUIVALENT;
     requested_virtual_sensors[6].sample_rate = BSEC_SAMPLE_RATE_ULP;
+
 
     bsec_sensor_configuration_t required_sensor_settings[BSEC_MAX_PHYSICAL_SENSOR];
     uint8_t n_required_sensor_settings = BSEC_MAX_PHYSICAL_SENSOR;
@@ -301,13 +296,9 @@ void bsec_task(void *pvParameters)
                 inputs[3].signal = data[0].gas_resistance;
                 inputs[3].sensor_id = BSEC_INPUT_GASRESISTOR;
 
-                inputs[4].time_stamp = curr_time_ns;
-                inputs[4].signal = data[0].pressure;
-                inputs[4].sensor_id = BSEC_INPUT_PRESSURE;
-
                 bsec_output_t outputs[BSEC_NUMBER_OUTPUTS];
                 uint8_t n_outputs = BSEC_NUMBER_OUTPUTS;
-                bsec_do_steps(inputs, 5, outputs, &n_outputs);
+                bsec_do_steps(inputs, 4, outputs, &n_outputs);
 
                 for (int i = 0; i < n_outputs; i++)
                 {
@@ -340,6 +331,10 @@ void bsec_task(void *pvParameters)
                         ESP_LOGI(TAG_AIR_QUALITY, "Temp: %.2f°C", outputs[i].signal);
                         zb_update_temp((int)(outputs[i].signal * 100));
                         break;
+                    case BSEC_OUTPUT_RAW_PRESSURE:
+                        ESP_LOGI(TAG_AIR_QUALITY, "Pressure: %.2f hPa", outputs[i].signal / 100.0f);
+                        zb_update_pressure((int16_t)(outputs[i].signal / 100.0f));
+                        break;
                     case BSEC_OUTPUT_RAW_HUMIDITY:
                         ESP_LOGI(TAG_AIR_QUALITY, "Hum: %.2f%%", outputs[i].signal);
                         zb_update_hum((uint16_t)(outputs[i].signal * 100));
@@ -347,10 +342,6 @@ void bsec_task(void *pvParameters)
                     case BSEC_OUTPUT_RAW_GAS:
                         ESP_LOGI(TAG_AIR_QUALITY, "Gas Res: %.0f Ohm", outputs[i].signal);
                         zb_update_gas_resistance(outputs[i].signal);
-                        break;
-                    case BSEC_OUTPUT_RAW_PRESSURE:
-                        ESP_LOGI(TAG_AIR_QUALITY, "Pressure: %.2f hPa", outputs[i].signal / 100.0f);
-                        zb_update_pressure(outputs[i].signal / 100.0f);
                         break;
                     default:
                         break;
