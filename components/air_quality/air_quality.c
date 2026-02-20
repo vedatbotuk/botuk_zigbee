@@ -232,7 +232,7 @@ void bsec_task(void *pvParameters)
     bsec_sensor_configuration_t required_sensor_settings[BSEC_MAX_PHYSICAL_SENSOR];
     uint8_t n_required_sensor_settings = BSEC_MAX_PHYSICAL_SENSOR;
 
-    bsec_update_subscription(requested_virtual_sensors, 6,
+    bsec_update_subscription(requested_virtual_sensors, 7,
                              required_sensor_settings,
                              &n_required_sensor_settings);
 
@@ -320,7 +320,7 @@ void bsec_task(void *pvParameters)
                         zb_update_iaq(outputs[i].signal, outputs[i].accuracy);
                         break;
                     case BSEC_OUTPUT_CO2_EQUIVALENT:
-                        ESP_LOGI(TAG_AIR_QUALITY, "eCO2: %.0f ppm", outputs[i].signal);
+                        ESP_LOGI(TAG_AIR_QUALITY, "CO2: %.0f ppm", outputs[i].signal);
                         zb_update_co2(outputs[i].signal);
                         break;
                     case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
@@ -329,7 +329,7 @@ void bsec_task(void *pvParameters)
                         break;
                     case BSEC_OUTPUT_RAW_TEMPERATURE:
                         ESP_LOGI(TAG_AIR_QUALITY, "Temp: %.2f°C", outputs[i].signal);
-                        zb_update_temp((int)(outputs[i].signal * 100));
+                        zb_update_temp((int16_t)(outputs[i].signal * 100));
                         break;
                     case BSEC_OUTPUT_RAW_PRESSURE:
                         ESP_LOGI(TAG_AIR_QUALITY, "Pressure: %.2f hPa", outputs[i].signal / 100.0f);

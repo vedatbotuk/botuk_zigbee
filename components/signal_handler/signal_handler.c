@@ -209,7 +209,7 @@ void create_signal_handler(esp_zb_app_signal_t signal_struct, bool light_sleep_b
     case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
         // ESP_LOGI(TAG_SIGNAL_HANDLER, "Zigbee can sleep");
 #ifdef LIGHT_SLEEP
-        if (!light_sleep_blocked)
+        if (!light_sleep_blocked && !esp_zb_bdb_is_factory_new())
         {
             ESP_LOGI(TAG_SIGNAL_HANDLER, "Entering light sleep");
             esp_zb_sleep_now();

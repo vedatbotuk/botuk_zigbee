@@ -30,9 +30,9 @@ void zb_update_bvoc(float bvoc)
         esp_zb_lock_acquire(portMAX_DELAY);
         esp_zb_zcl_status_t state = esp_zb_zcl_set_attribute_val(
             DEVICE_ENDPOINT,
-            ESP_ZB_ZCL_CLUSTER_ID_VOC_MEASUREMENT,
+            ESP_ZB_ZCL_CLUSTER_ID_BVOC_MEASUREMENT,
             ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-            ESP_ZB_ZCL_ATTR_VOC_MEASUREMENT_MEASURED_VALUE_ID,
+            ESP_ZB_ZCL_ATTR_BVOC_MEASUREMENT_MEASURED_VALUE_ID,
             &bvoc,
             false);
         esp_zb_lock_release();
@@ -59,8 +59,8 @@ void zb_report_bvoc()
         static esp_zb_zcl_report_attr_cmd_t bvoc_measurement_cmd_req = {};
         bvoc_measurement_cmd_req.zcl_basic_cmd.src_endpoint = DEVICE_ENDPOINT;
         bvoc_measurement_cmd_req.address_mode = ESP_ZB_APS_ADDR_MODE_DST_ADDR_ENDP_NOT_PRESENT;
-        bvoc_measurement_cmd_req.clusterID = ESP_ZB_ZCL_CLUSTER_ID_VOC_MEASUREMENT;
-        bvoc_measurement_cmd_req.attributeID = ESP_ZB_ZCL_ATTR_VOC_MEASUREMENT_MEASURED_VALUE_ID;
+        bvoc_measurement_cmd_req.clusterID = ESP_ZB_ZCL_CLUSTER_ID_BVOC_MEASUREMENT;
+        bvoc_measurement_cmd_req.attributeID = ESP_ZB_ZCL_ATTR_BVOC_MEASUREMENT_MEASURED_VALUE_ID;
         bvoc_measurement_cmd_req.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_CLI;
         bvoc_measurement_cmd_req.manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC;
 

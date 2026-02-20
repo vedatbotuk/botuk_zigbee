@@ -52,7 +52,7 @@ const definition = {
             reporting: { min: 10, max: 3600, change: 10 }
         }),
         pressure({
-            reporting: { min: 10, max: 3600, change: 10 }
+            reporting: { min: 10, max: 3600, change: 1 }
         }),
         ...addCustomClusters(),
 
