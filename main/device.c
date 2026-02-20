@@ -65,11 +65,23 @@
 #endif
 
 static const char *TAG = "DEVICE";
+// here can not add ifdef light sleep,
+// because it is used in signal handler
+static bool light_sleep_blocked = true;
 
 /********************* Define functions **************************/
+static void light_sleep_block(void *arg)
+{
+    ESP_LOGI(TAG, "Light sleep until Zigbee commissioning is blocked for 2 minutes.");
+    vTaskDelay(pdMS_TO_TICKS(120000)); // Check every second if light sleep can be entered
+    light_sleep_blocked = false;
+    ESP_LOGI(TAG, "Zigbee commissioning complete. Light sleep can be entered now.");
+    vTaskDelete(NULL); // Delete this task once it's no longer needed
+}
+
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
-    create_signal_handler(*signal_struct);
+    create_signal_handler(*signal_struct, light_sleep_blocked);
 }
 
 #if !defined DEEP_SLEEP
@@ -569,4 +581,5 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(1000)); // delay to ensure all tasks are up before starting Zigbee task
     xTaskCreate(esp_zb_task, "Zigbee_main", 4 * 1024, NULL, 10, NULL);
     xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 5, NULL);
+    xTaskCreate(light_sleep_block, "light_sleep_block", 4096, NULL, 5, NULL);
 }
