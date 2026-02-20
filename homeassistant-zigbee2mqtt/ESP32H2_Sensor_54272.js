@@ -122,25 +122,6 @@ const definition = {
         e.text('air_quality', exposes.access.STATE)
             .withDescription('IAQ Classification'),
     ],
-
-    configure: async (device, coordinatorEndpoint) => {
-        const endpoint = device.getEndpoint(10);
-        const clusters = [0xFC04, 0xFC05, 0xFC06];
-        for (const cluster of clusters) {
-            try {
-                await endpoint.bind(cluster, coordinatorEndpoint);
-                await endpoint.configureReporting(cluster, [{
-                    attribute: 'measuredValue',
-                    minimumReportInterval: 1,
-                    maximumReportInterval: 3600,
-                    reportableChange: 0.1
-                }]);
-                logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
-            } catch (error) {
-                logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
-            }
-        }
-    },
     ota: true,
 };
 
