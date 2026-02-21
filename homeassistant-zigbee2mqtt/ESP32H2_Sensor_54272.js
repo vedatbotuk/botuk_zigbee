@@ -32,6 +32,11 @@ const addCustomClusters = () => [
         ID: 0xFC06,
         attributes: { measuredValue: { ID: 0x0000, type: 0x39 } },
         commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('botukIaqAccuracy', {
+        ID: 0xFC0B,
+        attributes: { measuredValue: { ID: 0x0000, type: 0x20 } },
+        commands: {}, commandsResponse: {},
     })
 ];
 
@@ -85,6 +90,16 @@ const definition = {
             precision: 0,
             reporting: { min: 1, max: 3600, change: 10 },
             description: 'Gas resistance value'
+        }),
+        numeric({
+            name: 'iaq_accuracy',
+            cluster: 'botukIaqAccuracy',
+            attribute: 'measuredValue',
+            unit: 'accuracy',
+            access: 'STATE_GET',
+            precision: 0,
+            reporting: { min: 1, max: 65000, change: 1 },
+            description: 'IAQ accuracy value'
         }),
     ],
 

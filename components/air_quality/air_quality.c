@@ -208,25 +208,53 @@ void bsec_task(void *pvParameters)
     // 4. Subscribe to IAQ
     bsec_sensor_configuration_t requested_virtual_sensors[7];
     requested_virtual_sensors[0].sensor_id = BSEC_OUTPUT_IAQ;
+#ifdef TESTING
+    requested_virtual_sensors[0].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[0].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
     requested_virtual_sensors[1].sensor_id = BSEC_OUTPUT_RAW_TEMPERATURE;
+#ifdef TESTING
+    requested_virtual_sensors[1].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[1].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
     requested_virtual_sensors[2].sensor_id = BSEC_OUTPUT_RAW_PRESSURE;
+#ifdef TESTING
+    requested_virtual_sensors[2].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[2].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
     requested_virtual_sensors[3].sensor_id = BSEC_OUTPUT_RAW_HUMIDITY;
+#ifdef TESTING
+    requested_virtual_sensors[3].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[3].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
     requested_virtual_sensors[4].sensor_id = BSEC_OUTPUT_RAW_GAS;
+#ifdef TESTING
+    requested_virtual_sensors[4].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[4].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
     requested_virtual_sensors[5].sensor_id = BSEC_OUTPUT_CO2_EQUIVALENT;
+#ifdef TESTING
+    requested_virtual_sensors[5].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[5].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
     requested_virtual_sensors[6].sensor_id = BSEC_OUTPUT_BREATH_VOC_EQUIVALENT;
+#ifdef TESTING
+    requested_virtual_sensors[6].sample_rate = BSEC_SAMPLE_RATE_LP;
+#else
     requested_virtual_sensors[6].sample_rate = BSEC_SAMPLE_RATE_ULP;
+#endif
 
 
     bsec_sensor_configuration_t required_sensor_settings[BSEC_MAX_PHYSICAL_SENSOR];
@@ -318,6 +346,7 @@ void bsec_task(void *pvParameters)
                         ESP_LOGI(TAG_AIR_QUALITY, "IAQ: %.2f", outputs[i].signal);
                         ESP_LOGI(TAG_AIR_QUALITY, "Accuracy: %s (%d)", accuracy_str(outputs[i].accuracy), outputs[i].accuracy);
                         zb_update_iaq(outputs[i].signal, outputs[i].accuracy);
+                        zb_update_iaq_accuracy((uint8_t)(outputs[i].accuracy));
                         break;
                     case BSEC_OUTPUT_CO2_EQUIVALENT:
                         ESP_LOGI(TAG_AIR_QUALITY, "CO2: %.0f ppm", outputs[i].signal);
