@@ -119,7 +119,7 @@ void sim_bsec_task(void *pvParameters)
     ESP_LOGI(TAG_AIR_QUALITY, "Simulated BSEC Task Started");
 
     static float IAQ = 0.0f;
-    static int accuracy = 6;
+    static int accuracy = 3;
     static const char *acc_str = "Calibrated";
     static float eCO2 = 400.0f;
     static float bVOC = 0.5f;
@@ -146,7 +146,8 @@ void sim_bsec_task(void *pvParameters)
         ESP_LOGI(TAG_AIR_QUALITY, "Simulated Gas Resistance: %.2f Ohms", gas_res);
         ESP_LOGI(TAG_AIR_QUALITY, "Simulated Pressure: %.2f Pa", pressure);
 
-        zb_update_iaq(IAQ, accuracy);
+        zb_update_iaq(IAQ);
+        zb_update_iaq_accuracy((uint8_t)accuracy);
         zb_update_co2(eCO2);
         zb_update_bvoc(bVOC);
         zb_update_temp(temp);
@@ -345,7 +346,7 @@ void bsec_task(void *pvParameters)
                     case BSEC_OUTPUT_IAQ:
                         ESP_LOGI(TAG_AIR_QUALITY, "IAQ: %.2f", outputs[i].signal);
                         ESP_LOGI(TAG_AIR_QUALITY, "Accuracy: %s (%d)", accuracy_str(outputs[i].accuracy), outputs[i].accuracy);
-                        zb_update_iaq(outputs[i].signal, outputs[i].accuracy);
+                        zb_update_iaq((uint16_t)(outputs[i].signal));
                         zb_update_iaq_accuracy((uint8_t)(outputs[i].accuracy));
                         break;
                     case BSEC_OUTPUT_CO2_EQUIVALENT:

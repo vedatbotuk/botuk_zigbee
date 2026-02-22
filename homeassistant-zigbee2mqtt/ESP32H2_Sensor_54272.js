@@ -48,16 +48,16 @@ const definition = {
 
     extend: [
         temperature({
-            reporting: { min: 10, max: 3600, change: 10 }
+            reporting: { min: 60, max: 3600, change: 10 }
         }),
         humidity({
-            reporting: { min: 10, max: 3600, change: 10 }
+            reporting: { min: 60, max: 3600, change: 10 }
         }),
         co2({
-            reporting: { min: 10, max: 3600, change: 10 }
+            reporting: { min: 60, max: 3600, change: 10 }
         }),
         pressure({
-            reporting: { min: 10, max: 3600, change: 1 }
+            reporting: { min: 60, max: 3600, change: 1 }
         }),
         ...addCustomClusters(),
 
@@ -68,7 +68,7 @@ const definition = {
             unit: 'index',
             access: 'STATE_GET',
             precision: 1,
-            reporting: { min: 1, max: 3600, change: 1 },
+            reporting: { min: 60, max: 3600, change: 1 },
             description: 'Measured IAQ index value'
         }),
         numeric({
@@ -78,7 +78,7 @@ const definition = {
             unit: 'ppm',
             access: 'STATE_GET',
             precision: 2,
-            reporting: { min: 1, max: 3600, change: 0.1 },
+            reporting: { min: 60, max: 3600, change: 0.1 },
             description: 'Measured VOC index value'
         }),
         numeric({
@@ -88,7 +88,7 @@ const definition = {
             unit: 'Ohm',
             access: 'STATE_GET',
             precision: 0,
-            reporting: { min: 1, max: 3600, change: 10 },
+            reporting: { min: 60, max: 3600, change: 100 },
             description: 'Gas resistance value'
         }),
         numeric({
@@ -98,7 +98,7 @@ const definition = {
             unit: 'accuracy',
             access: 'STATE_GET',
             precision: 0,
-            reporting: { min: 1, max: 65000, change: 1 },
+            reporting: { min: 60, max: 3600, change: 1 },
             description: 'IAQ accuracy value'
         }),
     ],

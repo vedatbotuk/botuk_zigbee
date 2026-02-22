@@ -148,8 +148,9 @@ const definition = {
     //     exposes.binary('state_white', ea.ALL, 'ON', 'OFF').withDescription('White LED'),
     // ],
 
+    // TODO: This we dont nedd
     configure: async (device, coordinatorEndpoint) => {
-        const endpoint = device.getEndpoint(1);
+        const endpoint = device.getEndpoint(10);
         const clusters = [0xFC07, 0xFC08, 0xFC09, 0xFC0A];
         for (const cluster of clusters) {
             try {

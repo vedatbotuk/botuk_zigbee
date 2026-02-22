@@ -265,7 +265,7 @@ void create_bvoc_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_bvoc_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_BVOC_MEASUREMENT);
     esp_zb_custom_cluster_add_custom_attr(
         esp_zb_bvoc_meas_cluster, ESP_ZB_ZCL_ATTR_BVOC_MEASUREMENT_MEASURED_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_bvoc_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
@@ -274,8 +274,8 @@ void create_iaq_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     float undefined_value = 50.0f;
     esp_zb_attribute_list_t *esp_zb_iaq_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_IAQ_MEASUREMENT);
     esp_zb_custom_cluster_add_custom_attr(
-        esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_ATTR_IAQ_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+        esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_ATTR_IAQ_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_U16,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_iaq_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
@@ -284,8 +284,8 @@ void create_iaq_accuracy_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     uint8_t undefined_value = 0;
     esp_zb_attribute_list_t *esp_zb_iaq_accuracy_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_ATTR_IAQ_ACCURACY_MEASURMENT);
     esp_zb_custom_cluster_add_custom_attr(
-        esp_zb_iaq_accuracy_meas_cluster, ESP_ZB_ZCL_ATTR_IAQ_ACCURACY_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+        esp_zb_iaq_accuracy_meas_cluster, ESP_ZB_ZCL_ATTR_IAQ_ACCURACY_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_U8,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_iaq_accuracy_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 
@@ -295,7 +295,7 @@ void create_gas_resistance_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_gas_resistance_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_GAS_RESISTANCE_MEASUREMENT);
     esp_zb_custom_cluster_add_custom_attr(
         esp_zb_gas_resistance_meas_cluster, ESP_ZB_ZCL_ATTR_GAS_RESISTANCE_MEASUREMENT_VALUE_ID, ESP_ZB_ZCL_ATTR_TYPE_SINGLE,
-        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_gas_resistance_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
 

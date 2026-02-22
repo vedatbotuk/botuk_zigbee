@@ -23,7 +23,7 @@
 
 static const char *TAG_ZB_UPDATE_IAQ = "UPDATE_IAQ_CLUSTER";
 
-void zb_update_iaq(float iaq, uint8_t accuracy)
+void zb_update_iaq(uint16_t iaq)
 {
     if (connection_status())
     {

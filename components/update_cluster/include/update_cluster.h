@@ -37,7 +37,7 @@ void zb_update_waterleak(uint16_t leak);
 void zb_report_waterleak(uint16_t leak);
 void zb_update_current_time(uint32_t current_time);
 void zb_update_local_time(uint32_t local_time);
-void zb_update_iaq(float iaq, uint8_t accuracy);
+void zb_update_iaq(uint16_t iaq);
 void zb_update_iaq_accuracy(uint8_t accuracy);
 void zb_report_iaq();
 void zb_report_iaq_accuracy();

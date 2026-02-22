@@ -466,6 +466,8 @@ static void esp_zb_task(void *pvParameters)
     ESP_LOGI(TAG, "Create SENSOR_GAS Cluster");
     create_iaq_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create IAQ Cluster");
+    create_iaq_accuracy_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create IAQ Accuracy Cluster");
     create_co2_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create CO2 Cluster");
     create_bvoc_cluster(esp_zb_cluster_list);
