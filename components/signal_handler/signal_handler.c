@@ -130,7 +130,7 @@ static void handle_successful_join()
 #endif
 }
 
-void create_signal_handler(esp_zb_app_signal_t signal_struct)
+void create_signal_handler(esp_zb_app_signal_t signal_struct, bool light_sleep_blocked)
 {
     uint32_t *p_sg_p = signal_struct.p_app_signal;
     esp_err_t err_status = signal_struct.esp_err_status;
@@ -207,9 +207,13 @@ void create_signal_handler(esp_zb_app_signal_t signal_struct)
         break;
 #if defined LIGHT_SLEEP || DEEP_SLEEP || BATTERY_FEATURES
     case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
-        ESP_LOGI(TAG_SIGNAL_HANDLER, "Zigbee can sleep");
+        // ESP_LOGI(TAG_SIGNAL_HANDLER, "Zigbee can sleep");
 #ifdef LIGHT_SLEEP
-        esp_zb_sleep_now();
+        if (!light_sleep_blocked && !esp_zb_bdb_is_factory_new())
+        {
+            ESP_LOGI(TAG_SIGNAL_HANDLER, "Entering light sleep");
+            esp_zb_sleep_now();
+        }
 #endif
         break;
 #endif
