@@ -162,6 +162,13 @@ void sim_bsec_task(void *pvParameters)
 void bsec_task(void *pvParameters)
 {
     ESP_LOGI(TAG_AIR_QUALITY, "BSEC Task Started");
+    ESP_LOGI(TAG_AIR_QUALITY, "Waiting for zigbee connection before starting measurements...");
+    
+    while (!connection_status())
+    {        
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+    ESP_LOGI(TAG_AIR_QUALITY, "Zigbee connected. Starting measurements...");
 
     // 1. Initialize I2C Master Bus
     i2c_master_bus_config_t bus_cfg = {

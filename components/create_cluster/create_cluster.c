@@ -142,8 +142,8 @@ void create_pressure_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 
 void create_co2_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 {
-    float_t undefined_value = 0.0f; // Use float
-    float_t co2_max = 40000.0f;     // Use float
+    float_t undefined_value = 0.0005f; // Use float
+    float_t co2_max = 0.004f;       // Use float
     float_t co2_min = 0.0f;         // Use float
     esp_zb_attribute_list_t *esp_zb_co2_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_CARBON_DIOXIDE_MEASUREMENT);
     esp_zb_carbon_dioxide_measurement_cluster_add_attr(esp_zb_co2_meas_cluster, ESP_ZB_ZCL_ATTR_CARBON_DIOXIDE_MEASUREMENT_MEASURED_VALUE_ID, &undefined_value);
