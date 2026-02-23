@@ -20,7 +20,7 @@ const NS = 'zhc:botuk';
 const addCustomClusters = () => [
     deviceAddCustomCluster('botukIaqMeas', {
         ID: 0xFC04,
-        attributes: { measuredValue: { ID: 0x0000, type: 0x39 } }, // SINGLE_PREC
+        attributes: { measuredValue: { ID: 0x0000, type: 0x21 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('botukVocMeas', {
@@ -48,16 +48,16 @@ const definition = {
 
     extend: [
         temperature({
-            reporting: { min: 60, max: 3600, change: 10 }
+            // reporting: { min: 60, max: 3600, change: 10 }
         }),
         humidity({
-            reporting: { min: 60, max: 3600, change: 10 }
+            // reporting: { min: 60, max: 3600, change: 10 }
         }),
         co2({
-            reporting: { min: 60, max: 3600, change: 10 }
+            // reporting: { min: 60, max: 3600, change: 10 }
         }),
         pressure({
-            reporting: { min: 60, max: 3600, change: 1 }
+            // reporting: { min: 60, max: 3600, change: 1 }
         }),
         ...addCustomClusters(),
 
@@ -68,7 +68,7 @@ const definition = {
             unit: 'index',
             access: 'STATE_GET',
             precision: 1,
-            reporting: { min: 60, max: 3600, change: 1 },
+            // reporting: { min: 60, max: 3600, change: 1 },
             description: 'Measured IAQ index value'
         }),
         numeric({
@@ -78,7 +78,7 @@ const definition = {
             unit: 'ppm',
             access: 'STATE_GET',
             precision: 2,
-            reporting: { min: 60, max: 3600, change: 0.1 },
+            // reporting: { min: 60, max: 3600, change: 0.1 },
             description: 'Measured VOC index value'
         }),
         numeric({
@@ -88,7 +88,7 @@ const definition = {
             unit: 'Ohm',
             access: 'STATE_GET',
             precision: 0,
-            reporting: { min: 60, max: 3600, change: 100 },
+            // reporting: { min: 60, max: 3600, change: 100 },
             description: 'Gas resistance value'
         }),
         numeric({
@@ -98,7 +98,7 @@ const definition = {
             unit: 'accuracy',
             access: 'STATE_GET',
             precision: 0,
-            reporting: { min: 60, max: 3600, change: 1 },
+            // reporting: { min: 60, max: 3600, change: 1 },
             description: 'IAQ accuracy value'
         }),
     ],
@@ -127,6 +127,84 @@ const definition = {
             }
         },
     }],
+
+    configure: async (device, coordinatorEndpoint) => {
+        const endpoint = device.getEndpoint(10);
+
+        // await reporting.bind(endpoint, coordinatorEndpoint, [
+        //     'msTemperatureMeasurement',
+        //     'msRelativeHumidity',
+        //     'msCO2',
+        //     'msPressureMeasurement',
+        //     'botukIaqMeas',
+        //     'botukVocMeas',
+        //     'botukGasMeas',
+        //     'botukIaqAccuracy'
+        // ]);
+
+        await endpoint.configureReporting('msTemperatureMeasurement', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 10,
+        }]);
+
+        await endpoint.configureReporting('msRelativeHumidity', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 50,
+        }]);
+
+        await endpoint.configureReporting('msCO2', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 10,
+        }]);
+
+        await endpoint.configureReporting('msPressureMeasurement', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 1,
+        }]);
+
+        await endpoint.configureReporting('msPressureMeasurement', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 1,
+        }]);
+
+        await endpoint.configureReporting('botukIaqMeas', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 1,
+        }]);
+
+        await endpoint.configureReporting('botukVocMeas', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 0.1,
+        }]);
+
+        await endpoint.configureReporting('botukGasMeas', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 100,
+        }]);
+
+        await endpoint.configureReporting('botukIaqAccuracy', [{
+            attribute: 'measuredValue',
+            minimumReportInterval: 60,
+            maximumReportInterval: 3600,
+            reportableChange: 0,
+        }]);
+    },
 
     exposes: [
         e.numeric('eco2', exposes.access.STATE)

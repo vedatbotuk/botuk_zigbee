@@ -105,7 +105,7 @@ void create_identify_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 void create_temp_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 {
     /* Default temperature value*/
-    int16_t undefined_value = 23;
+    int16_t undefined_value = 2300;
     // TODO: Are following values correct?
     int16_t temperature_max = 5000;
     int16_t temperature_min = -5000;
@@ -118,7 +118,7 @@ void create_temp_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 
 void create_hum_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
 {
-    uint16_t undefined_value = 50;
+    uint16_t undefined_value = 5000;
     uint16_t humidity_max = 10000;
     uint16_t humidity_min = 0;
     esp_zb_attribute_list_t *esp_zb_hum_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT);
