@@ -11,6 +11,7 @@ const { logger } = require('zigbee-herdsman-converters/lib/logger');
 const exposes = require('zigbee-herdsman-converters/lib/exposes');
 const utils = require('zigbee-herdsman-converters/lib/utils');
 const e = exposes.presets;
+const reporting = require('zigbee-herdsman-converters/lib/reporting');
 
 const NS = 'zhc:botuk';
 
@@ -131,16 +132,16 @@ const definition = {
     configure: async (device, coordinatorEndpoint) => {
         const endpoint = device.getEndpoint(10);
 
-        // await reporting.bind(endpoint, coordinatorEndpoint, [
-        //     'msTemperatureMeasurement',
-        //     'msRelativeHumidity',
-        //     'msCO2',
-        //     'msPressureMeasurement',
-        //     'botukIaqMeas',
-        //     'botukVocMeas',
-        //     'botukGasMeas',
-        //     'botukIaqAccuracy'
-        // ]);
+        await reporting.bind(endpoint, coordinatorEndpoint, [
+            'msTemperatureMeasurement',
+            'msRelativeHumidity',
+            'msCO2',
+            'msPressureMeasurement',
+            'botukIaqMeas',
+            'botukVocMeas',
+            'botukGasMeas',
+            'botukIaqAccuracy'
+        ]);
 
         await endpoint.configureReporting('msTemperatureMeasurement', [{
             attribute: 'measuredValue',
