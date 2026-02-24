@@ -65,8 +65,8 @@ function decode() {
 
     let decimalValue = BigInt("0b" + binaryString);
 
-    let html = `<p><strong>Binary:</strong> ${binaryString}</p>`;
-    html += `<p><strong>Decimal:</strong> ${decimalValue}</p>`;
+    let html = `<p><strong>Binary:</strong> <input type="text" value="${binaryString}" readonly></p>`;
+    html += `<p><strong>Decimal:</strong> <input type="text" value="${decimalValue}" readonly></p>`;
     html += "<hr>";
     html += "<ul>";
 
