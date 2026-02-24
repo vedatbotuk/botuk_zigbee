@@ -60,7 +60,7 @@ include:
   - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/check_parameter@~latest
     inputs:
       check_file: "settings.conf"
-      check_key: "TEST"
+      check_key: "TESTING"
       expected_value: "0"
 
 sync_wiki:
