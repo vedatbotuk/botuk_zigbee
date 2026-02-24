@@ -92,7 +92,7 @@ void light_driver_set_red_light(void *arg)
 void light_driver_set_yellow_light(void *arg)
 {
     s_red = 255;
-    s_green = 200;
+    s_green = 150;
     s_blue = 0;
     uint8_t level = 120;
     light_driver_loop(level);

@@ -6,6 +6,7 @@ const {
 const { logger } = require('zigbee-herdsman-converters/lib/logger');
 // const exposes = require('zigbee-herdsman-converters/lib/exposes');
 // const ea = exposes.presets;
+const reporting = require('zigbee-herdsman-converters/lib/reporting');
 
 const NS = 'zhc:botuk';
 
@@ -52,7 +53,7 @@ const definition = {
             valueOn: ['ON', 1],
             valueOff: ['OFF', 0],
             description: 'Red LED on/off state',
-            reporting: { min: 1, max: 3600, change: 1 },
+            // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL', // This enables GET, SET, and STATE (reporting)
         }),
         binary({
@@ -62,7 +63,7 @@ const definition = {
             valueOn: ['ON', 1],
             valueOff: ['OFF', 0],
             description: 'Yellow LED on/off state',
-            reporting: { min: 1, max: 3600, change: 1 },
+            // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL',
         }),
         binary({
@@ -72,7 +73,7 @@ const definition = {
             valueOn: ['ON', 1],
             valueOff: ['OFF', 0],
             description: 'Green LED on/off state',
-            reporting: { min: 1, max: 3600, change: 1 },
+            // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL',
         }),
         binary({
@@ -82,7 +83,7 @@ const definition = {
             valueOn: ['ON', 1],
             valueOff: ['OFF', 0],
             description: 'White LED on/off state',
-            reporting: { min: 1, max: 3600, change: 1 },
+            // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL',
         }),
     ],
@@ -159,7 +160,7 @@ const definition = {
                     attribute: 'onOff',
                     minimumReportInterval: 1,
                     maximumReportInterval: 3600,
-                    reportableChange: 1
+                    reportableChange: 0
                 }]);
                 logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
             } catch (error) {
