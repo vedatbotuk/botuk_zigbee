@@ -57,6 +57,11 @@ include:
       versionfile: "settings.conf"
       versionkey: "FIRMWARE_VERSION"
   - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/restrict_pr_to_main@~latest
+  - component: $CI_SERVER_FQDN/vedat/gitlab-ci-templates/check_parameter@~latest
+    inputs:
+      check_file: "settings.conf"
+      check_key: "TEST"
+      expected_value: "0"
 
 sync_wiki:
   extends: .sync_to_wikijs
@@ -65,6 +70,8 @@ check_version:
   extends: .check_version
 restrict_pr_to_main:
   extends: .restrict_pr_to_main
+check_parameter:
+  extends: .check_parameter
 
 # TODO build docker
 # esp-idf container can build and push
