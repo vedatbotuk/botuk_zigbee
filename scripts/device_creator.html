@@ -1,0 +1,76 @@
+<div id="deviceCreator">
+    <h2>Create Device</h2>
+
+    <div id="featuresContainer"></div>
+
+    <button id="createBtn">Create Device Note</button>
+
+    <p>MODEL_ID Binary:</p>
+    <textarea id="binary" rows="1" style="width: 100%;"></textarea>
+
+    <p>MODEL_ID Decimal:</p>
+    <textarea id="decimal" rows="1" style="width: 100%;"></textarea>
+</div>
+
+<script>
+(function() {
+    const features = [
+        "END_DEVICE (0=ROUTER_DEVICE)",
+        "OTA_UPGRADE",
+        "DHT22",
+        "BME680",
+        "BATTERY",
+        "LIGHT_SLEEP",
+        "DEEP_SLEEP",
+        "SENSOR_WATERLEAK",
+        "BUILTIN_LIGHT",
+        "SWITCH",
+        "SOME_FEATURE",
+        "FEATURE_12",
+        "FEATURE_13",
+        "FEATURE_14",
+        "FEATURE_15",
+        "FEATURE_16"
+    ];
+
+    const container = document.getElementById("featuresContainer");
+
+    // Generate checkboxes
+    features.forEach((f, i) => {
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "f" + i;
+
+        const label = document.createElement("label");
+        label.htmlFor = checkbox.id;
+        label.textContent = f;
+
+        container.appendChild(checkbox);
+        container.appendChild(label);
+        container.appendChild(document.createElement("br"));
+    });
+
+    // Button logic
+    document.getElementById("createBtn").addEventListener("click", async () => {
+        let binary = "";
+        features.forEach((_, i) => {
+            binary += document.getElementById("f" + i).checked ? "1" : "0";
+        });
+
+        const decimal = parseInt(binary, 2);
+
+        // Show IDs in textarea (copyable)
+        document.getElementById("binary").value = binary;
+        document.getElementById("decimal").value = decimal;
+
+        // Create device note via Trilium script
+        await api.runOnNote("Create Device Script", {
+            deviceName: "Device",        // default name
+            modelId: binary,
+            decimalValue: decimal.toString()
+        });
+
+        alert("Device created!");
+    });
+})();
+</script>
