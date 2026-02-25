@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Feature Bitmask Decoder</title>
+<style>
+    .enabled { color: green; }
+    .disabled { color: gray; }
+    .error { color: red; }
+</style>
+</head>
+<body>
+
+<h2>Device Feature Bitmask Decoder - Binary or Decimal</h2>
+
+<input id="modelId" placeholder="Enter binary or decimal MODEL_ID">
+<button onclick="decode()">Decode</button>
+
+<div id="output"></div>
+
+<script>
+const features = [
+    "END_DEVICE (0=ROUTER_DEVICE)",
+    "OTA_UPGRADE",
+    "DHT22",
+    "BME680",
+    "BATTERY",
+    "LIGHT_SLEEP",
+    "DEEP_SLEEP",
+    "SENSOR_WATERLEAK",
+    "BUILTIN_LIGHT",
+    "SWITCH",
+    "SOME_FEATURE",
+    "FEATURE_12",
+    "FEATURE_13",
+    "FEATURE_14",
+    "FEATURE_15",
+    "FEATURE_16"
+];
+
+function decode() {
+    let input = document.getElementById("modelId").value.trim();
+    const outputDiv = document.getElementById("output");
+    let binaryString;
+
+    if (/^[01]+$/.test(input)) {
+        // Input is binary
+        binaryString = input;
+    } else if (/^\d+$/.test(input)) {
+        // Input is decimal
+        let decimalValue = BigInt(input); // Use BigInt for very large numbers
+        binaryString = decimalValue.toString(2);
+    } else {
+        outputDiv.innerHTML = "<p class='error'>ERROR: Input must be binary or decimal number.</p>";
+        return;
+    }
+
+    // Pad binary to match feature length
+    if (binaryString.length < features.length) {
+        binaryString = binaryString.padStart(features.length, "0");
+    } else if (binaryString.length > features.length) {
+        outputDiv.innerHTML = `<p class='error'>ERROR: Bit length (${binaryString.length}) exceeds feature count (${features.length}).</p>`;
+        return;
+    }
+
+    let decimalValue = BigInt("0b" + binaryString);
+
+    let html = `<p><strong>Binary:</strong> <input type="text" value="${binaryString}" readonly></p>`;
+    html += `<p><strong>Decimal:</strong> <input type="text" value="${decimalValue}" readonly></p>`;
+    html += "<hr>";
+    html += "<ul>";
+
+    for (let i = 0; i < features.length; i++) {
+        if (binaryString[i] === "1") {
+            html += `<li class="enabled">✅ ${features[i]}</li>`;
+        } else {
+            html += `<li class="disabled">❌ ${features[i]}</li>`;
+        }
+    }
+
+    html += "</ul>";
+
+    outputDiv.innerHTML = html;
+}
+</script>
+
+</body>
+</html>

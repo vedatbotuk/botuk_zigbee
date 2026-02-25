@@ -1,0 +1,4 @@
+Zigbee2MQTT-Version=2.8.0
+Frontend-Version=2.8.1
+zigbee-herdsman-converters Version=25.120.0
+zigbee-herdsman Version=9.0.2

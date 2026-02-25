@@ -129,7 +129,7 @@ Docker container for gitlab ci/cd. This container build source code.
 
 1. Build the Docker Image
 ```bash
-docker build -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
+docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
 ```
 
 1. Push the Docker Image
@@ -144,4 +144,32 @@ In ```main/idf_component.yml``` can be changed following libraries.
 - ```esp-zboss-lib```
 - ```esp-zigbee-lib```
 
-In ```Dockerfile``` can be changed esp-idf version.
+# esp-idf version update
+This project uses a single source of truth for the ESP-IDF version:
+```
+esp_idf_version.txt
+```
+Updating ESP-IDF only requires modifying this file.
+
+## Update the Version File
+Open and change version.
+```
+esp_idf_version.txt
+```
+For example:
+```
+v5.5.1
+```
+
+After changing version, should be rebuild docker container.
+## Rebuild the Docker Image
+```bash
+docker build \
+  --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) \
+  -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
+```
+
+## Push the Updated Image
+```bash
+docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
+```

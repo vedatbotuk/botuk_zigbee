@@ -246,7 +246,7 @@ project(${FILE_NAME})
 # Check the seccond number of MODEL_ID
 string(SUBSTRING ${MODEL_ID} 1 1 SECOND_NUM)
 if(SECOND_NUM EQUAL "1")
-    message(STATUS "OTA is not enabled, won't create OTA file.")
+    message(STATUS "OTA is enabled for this model. Creating OTA-Update file after build.")
     set(MY_DIR ${CMAKE_SOURCE_DIR}/ota)
     file(MAKE_DIRECTORY ${MY_DIR})
 
@@ -256,6 +256,8 @@ if(SECOND_NUM EQUAL "1")
         COMMAND ${CMAKE_COMMAND} -E env python3 ${PYTHON_SCRIPT} -m ${MANUFACTURER} -i ${MODEL_ID_DECIMAL} -v ${VERSION} ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin > ${CMAKE_SOURCE_DIR}/ota/${FILE_NAME}.ota
     )
     add_dependencies(RunPostBuildScript ${FILE_NAME}.elf)
+else()
+    message(STATUS "OTA is not enabled for this model. No OTA-Update file will be created.")    
 endif()
 #### Create OTA-Update File ####
 #### ###################### ####

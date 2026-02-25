@@ -27,7 +27,7 @@
 #endif
 
 const char *TAG_SIGNAL_HANDLER = "SIGNAL";
-bool conn = false;
+static bool conn = false;
 
 #ifdef MIX_SLEEP
 uint8_t deepsleep_cnt = 0;
@@ -57,7 +57,7 @@ static void bdb_start_top_level_commissioning_cb(uint8_t mode_mask)
     ESP_RETURN_ON_FALSE(esp_zb_bdb_start_top_level_commissioning(mode_mask) == ESP_OK, , TAG_SIGNAL_HANDLER, "Failed to start Zigbee bdb commissioning");
 }
 
-bool connection_status()
+bool connection_status(void)
 {
     return conn;
 }
@@ -82,10 +82,8 @@ static void deep_sleep_check()
 #ifdef DEEP_SLEEP
 static void get_sensor_data()
 {
-#ifdef TEMPERATURE_FEATURES
+#ifdef DHT22
     check_temperature();
-#endif
-#ifdef HUMIDITY_FEATURES
     check_humidity();
 #endif
 #ifdef WATERLEAK_FEATURES
@@ -132,7 +130,7 @@ static void handle_successful_join()
 #endif
 }
 
-void create_signal_handler(esp_zb_app_signal_t signal_struct)
+void create_signal_handler(esp_zb_app_signal_t signal_struct, bool light_sleep_blocked)
 {
     uint32_t *p_sg_p = signal_struct.p_app_signal;
     esp_err_t err_status = signal_struct.esp_err_status;
@@ -209,9 +207,13 @@ void create_signal_handler(esp_zb_app_signal_t signal_struct)
         break;
 #if defined LIGHT_SLEEP || DEEP_SLEEP || BATTERY_FEATURES
     case ESP_ZB_COMMON_SIGNAL_CAN_SLEEP:
-        ESP_LOGI(TAG_SIGNAL_HANDLER, "Zigbee can sleep");
+        // ESP_LOGI(TAG_SIGNAL_HANDLER, "Zigbee can sleep");
 #ifdef LIGHT_SLEEP
-        esp_zb_sleep_now();
+        if (!light_sleep_blocked)
+        {
+            ESP_LOGI(TAG_SIGNAL_HANDLER, "Entering light sleep");
+            esp_zb_sleep_now();
+        }
 #endif
         break;
 #endif

@@ -35,7 +35,7 @@
 #include "light_sleep.h"
 #endif
 
-#if defined DEEP_SLEEP || BATTERY_FEATURES
+#if defined DEEP_SLEEP
 #include "deep_sleep.h"
 #endif
 
@@ -47,8 +47,12 @@
 #include "waterleak.h"
 #endif
 
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#ifdef DHT22
 #include "temperature_humidity.h"
+#endif
+
+#ifdef BME680
+#include "air_quality.h"
 #endif
 
 #if defined SWITCH_FEATURES
@@ -61,35 +65,44 @@
 #endif
 
 static const char *TAG = "DEVICE";
-
-bool connected = false;
+// here can not add ifdef light sleep,
+// because it is used in signal handler
+static bool light_sleep_blocked = true;
 
 /********************* Define functions **************************/
+static void light_sleep_block(void *arg)
+{
+    if (esp_zb_bdb_is_factory_new())
+    {
+        ESP_LOGI(TAG, "Light sleep until Zigbee commissioning is blocked for 2 minutes.");
+        vTaskDelay(pdMS_TO_TICKS(60000)); // Check every second if light sleep can be entered
+        light_sleep_blocked = false;
+        ESP_LOGI(TAG, "Zigbee commissioning complete. Light sleep can be entered now.");
+        vTaskDelete(NULL); // Delete this task once it's no longer needed
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Device is not in factory new state, light sleep block is not needed.");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        light_sleep_blocked = false;
+        vTaskDelete(NULL); // Delete this task once it's no longer needed
+    }
+
+}
+
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
-    create_signal_handler(*signal_struct);
+    create_signal_handler(*signal_struct, light_sleep_blocked);
 }
 
 #if !defined DEEP_SLEEP
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#ifdef DHT22
 void measure_temp_hum()
 {
     while (1)
     {
-        connected = connection_status();
-        if (connected)
-        {
-#ifdef TEMPERATURE_FEATURES
-            check_temperature();
-#endif
-#ifdef HUMIDITY_FEATURES
-            check_humidity();
-#endif
-        }
-        else
-        {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the temperature and humidity");
-        }
+        check_temperature();
+        check_humidity();
 #if !defined TESTING
         vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
 #else
@@ -103,44 +116,32 @@ void measure_temp_hum()
 static TaskHandle_t flash_task_handle = NULL;
 #endif
 
-#if defined BATTERY_FEATURES && !defined DEEP_SLEEP
+#if defined BATTERY_FEATURES
 void measure_battery()
 {
     while (1)
     {
-        connected = connection_status();
-        if (connected)
-        {
-            read_battery_level();
-            uint8_t bat_lev = get_battery_level();
+        read_battery_level();
+        uint8_t bat_lev = get_battery_level();
 #if defined SWITCH_FEATURES || BUILTIN_LIGHT
-            if (bat_lev < 10)
-            {
-                ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
+        if (bat_lev < 10)
+        {
+            ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
 #if defined SWITCH_FEATURES
-                switch_driver_set_power(0);
+            switch_driver_set_power(0);
 #endif
 #if defined BUILTIN_LIGHT
-                // Stop flashing
-                if (flash_task_handle != NULL)
-                {
-                    vTaskDelete(flash_task_handle);
-                    flash_task_handle = NULL;
-                }
-                light_driver_set_power(false); // ensure LED is off
-#endif
-            }
-#endif
-            if (bat_lev < 5)
+            // Stop flashing
+            if (flash_task_handle != NULL)
             {
-                ESP_LOGI(TAG_SIGNAL_HANDLER, "Start one-shot timer for %ds to enter the deep sleep", before_deep_sleep_time_sec);
-                start_deep_sleep();
+                vTaskDelete(flash_task_handle);
+                flash_task_handle = NULL;
             }
+            light_driver_set_power(false); // ensure LED is off
+#endif
         }
-        else
-        {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the battery level");
-        }
+#endif
+
 #if !defined TESTING
         vTaskDelay(pdMS_TO_TICKS(900000)); // 900000 ms = 15 minutes
 #else
@@ -155,15 +156,7 @@ void waterleak_loop()
 {
     while (1)
     {
-        connected = connection_status();
-        if (connected)
-        {
-            check_waterleak();
-        }
-        else
-        {
-            ESP_LOGW(TAG, "Device is not connected! Could not measure the waterleak status");
-        }
+        check_waterleak();
         vTaskDelay(pdMS_TO_TICKS(10000)); // 10000 ms = 10 seconds
     }
 }
@@ -175,10 +168,6 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 {
     esp_err_t ret = ESP_OK;
     bool light_state = 0;
-#ifdef BUILTIN_LIGHT
-    uint16_t light_color_x = 0;
-    uint16_t light_color_y = 0;
-#endif
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
@@ -205,9 +194,9 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     switch_driver_set_power(light_state);
                 }
 #else
-                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                    switch_driver_set_power(light_state);
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
+                switch_driver_set_power(light_state);
 #endif
             }
         }
@@ -218,21 +207,26 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     {
         switch (message->info.cluster)
         {
-        case ESP_ZB_ZCL_CLUSTER_ID_ON_OFF:
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
+        case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-
-                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-
                 if (light_state)
                 {
-                    // Start flashing if not already running
                     if (flash_task_handle == NULL)
                     {
-                        xTaskCreate(flash_task, "flash_task", 2048, NULL, 5, &flash_task_handle);
+                        ESP_LOGI(TAG, "Started flashing red light");
                     }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
+                        zb_update_builtin_light_flash_yellow(0);
+                        zb_update_builtin_light_flash_green(0);
+                        zb_update_builtin_light_flash_white(0);
+                    }
+                    xTaskCreate(light_driver_set_red_light, "light_driver_set_red_light", 2048, NULL, 5, &flash_task_handle);
                 }
                 else
                 {
@@ -241,34 +235,129 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     {
                         vTaskDelete(flash_task_handle);
                         flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing red light");
                     }
-                    light_driver_set_power(false); // ensure LED is off
+                    light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
             }
             break;
-        case ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL:
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U16)
+        case ESP_ZB_ZCL_CLUSTER_ID_YELLOW_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_YELLOW_LIGHT_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
-                light_color_x = message->attribute.data.value ? *(uint16_t *)message->attribute.data.value : light_color_x;
-                light_color_y = *(uint16_t *)esp_zb_zcl_get_attribute(message->info.dst_endpoint, message->info.cluster,
-                                                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID)
-                                     ->data_p;
-                ESP_LOGI(TAG, "Light color x changes to 0x%x", light_color_x);
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing yellow light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash yellow light");
+                        zb_update_builtin_light_flash_red(0);
+                        zb_update_builtin_light_flash_green(0);
+                        zb_update_builtin_light_flash_white(0);
+                    }
+                    xTaskCreate(light_driver_set_yellow_light, "light_driver_set_yellow_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing yellow light");
+                    }
+                    light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
+                }
             }
-            else if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_Y_ID &&
-                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U16)
+            break;
+        case ESP_ZB_ZCL_CLUSTER_ID_GREEN_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_GREEN_LIGHT_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
-                light_color_y = message->attribute.data.value ? *(uint16_t *)message->attribute.data.value : light_color_y;
-                light_color_x = *(uint16_t *)esp_zb_zcl_get_attribute(message->info.dst_endpoint, message->info.cluster,
-                                                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_X_ID)
-                                     ->data_p;
-                ESP_LOGI(TAG, "Light color y changes to 0x%x", light_color_y);
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing green light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash green light");
+                        zb_update_builtin_light_flash_red(0);
+                        zb_update_builtin_light_flash_yellow(0);
+                        zb_update_builtin_light_flash_white(0);
+                    }
+                    xTaskCreate(light_driver_set_green_light, "light_driver_set_green_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing green light");
+                    }
+                    light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
+                }
             }
-            else
+            break;
+        case ESP_ZB_ZCL_CLUSTER_ID_WHITE_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_WHITE_LIGHT_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
-                ESP_LOGW(TAG, "Color control cluster data: attribute(0x%x), type(0x%x)", message->attribute.id, message->attribute.data.type);
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing white light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash white light");
+                        zb_update_builtin_light_flash_red(0);
+                        zb_update_builtin_light_flash_yellow(0);
+                        zb_update_builtin_light_flash_green(0);
+                    }
+                    xTaskCreate(light_driver_set_white_light, "light_driver_set_white_light", 2048, NULL, 5, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing white light");
+                    }
+                    light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
+                }
             }
-            light_driver_set_color_xy(light_color_x, light_color_y);
             break;
         default:
             ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
@@ -377,16 +466,27 @@ static void esp_zb_task(void *pvParameters)
     create_basic_cluster(esp_zb_cluster_list);
     create_identify_cluster(esp_zb_cluster_list);
     create_time_cluster(esp_zb_cluster_list);
-#ifdef TEMPERATURE_FEATURES
-    create_temp_cluster(esp_zb_cluster_list);
-    ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
-
-#endif
-#ifdef HUMIDITY_FEATURES
+#if defined DHT22 || defined BME680
     create_hum_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create SENSOR_HUMIDITY Cluster");
-
+    create_temp_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_TEMPERATURE Cluster");
 #endif
+#if defined BME680
+    create_gas_resistance_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_GAS Cluster");
+    create_iaq_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create IAQ Cluster");
+    create_iaq_accuracy_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create IAQ Accuracy Cluster");
+    create_co2_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create CO2 Cluster");
+    create_bvoc_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create BVOC Cluster");
+    create_pressure_cluster(esp_zb_cluster_list);
+    ESP_LOGI(TAG, "Create SENSOR_PRESSURE Cluster");
+#endif
+
 #ifdef WATERLEAK_FEATURES
     create_waterleak_cluster(esp_zb_cluster_list);
     ESP_LOGI(TAG, "Create WATERLEAK Cluster");
@@ -407,7 +507,10 @@ static void esp_zb_task(void *pvParameters)
 #endif
 
 #ifdef BUILTIN_LIGHT
-    create_builtin_light_cluster(esp_zb_cluster_list);
+    create_builtin_light_red(esp_zb_cluster_list);
+    create_builtin_light_yellow(esp_zb_cluster_list);
+    create_builtin_light_green(esp_zb_cluster_list);
+    create_builtin_light_white(esp_zb_cluster_list);
 #endif
 
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
@@ -434,12 +537,8 @@ static void update_rtc_time()
         time(&now);
         localtime_r(&now, &timeinfo);
         // ESP_LOGI(TAG, "Current time: %s", asctime(&timeinfo));
-        connected = connection_status();
-        if (connected)
-        {
-            zb_update_current_time(now);
-            zb_update_local_time(now);
-        }
+        zb_update_current_time(now);
+        zb_update_local_time(now);
         // TODO can be optimized
         vTaskDelay(pdMS_TO_TICKS(600000)); // 60000 ms = 1 minutes
     }
@@ -459,28 +558,23 @@ void app_main(void)
 #ifdef LIGHT_SLEEP
     ESP_ERROR_CHECK(esp_zb_power_save_init());
 #endif
-#if defined DEEP_SLEEP || BATTERY_FEATURES
+#if defined DEEP_SLEEP
     zb_deep_sleep_init();
 #endif
 #ifdef SWITCH_FEATURES
     ESP_LOGI(TAG, "Deferred driver initialization %s", switch_driver_init(SWITCH_DEFAULT_OFF) ? "failed" : "successful");
 #endif
-// TODO ESP_LOGI above does not work.
-#if defined BUILTIN_LIGHT
-    static bool is_inited = false;
-    if (!is_inited)
-    {
-        // light_driver_init(LIGHT_DEFAULT_OFF);
-        is_inited = true;
-    }
-    // TODO: light_driver_set_power off
-    light_driver_init(LIGHT_DEFAULT_OFF);
-
-    ESP_LOGI(TAG, "Initialization of built-in light driver %s", is_inited ? "successful" : "failed");
-#endif
 #if !defined DEEP_SLEEP
-#if defined TEMPERATURE_FEATURES || defined HUMIDITY_FEATURES
+#if defined DHT22
     xTaskCreate(measure_temp_hum, "measure_temp_hum", 4096, NULL, 5, NULL);
+#endif
+#if defined BME680
+// TODO: implement BME680 task
+#if !defined SIMULATE
+    xTaskCreate(bsec_task, "bsec", 10240, NULL, 5, NULL);
+#else
+    xTaskCreate(sim_bsec_task, "sim_bsec", 4096, NULL, 5, NULL);
+#endif
 #endif
 #ifdef BATTERY_FEATURES
     xTaskCreate(measure_battery, "measure_battery", 4096, NULL, 4, NULL);
@@ -497,6 +591,8 @@ void app_main(void)
     }
 #endif
 #endif
+    vTaskDelay(pdMS_TO_TICKS(1000)); // delay to ensure all tasks are up before starting Zigbee task
     xTaskCreate(esp_zb_task, "Zigbee_main", 4 * 1024, NULL, 10, NULL);
     xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 5, NULL);
+    xTaskCreate(light_sleep_block, "light_sleep_block", 4096, NULL, 5, NULL);
 }
