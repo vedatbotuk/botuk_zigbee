@@ -72,11 +72,22 @@ static bool light_sleep_blocked = true;
 /********************* Define functions **************************/
 static void light_sleep_block(void *arg)
 {
-    ESP_LOGI(TAG, "Light sleep until Zigbee commissioning is blocked for 2 minutes.");
-    vTaskDelay(pdMS_TO_TICKS(120000)); // Check every second if light sleep can be entered
-    light_sleep_blocked = false;
-    ESP_LOGI(TAG, "Zigbee commissioning complete. Light sleep can be entered now.");
-    vTaskDelete(NULL); // Delete this task once it's no longer needed
+    if (esp_zb_bdb_is_factory_new())
+    {
+        ESP_LOGI(TAG, "Light sleep until Zigbee commissioning is blocked for 2 minutes.");
+        vTaskDelay(pdMS_TO_TICKS(60000)); // Check every second if light sleep can be entered
+        light_sleep_blocked = false;
+        ESP_LOGI(TAG, "Zigbee commissioning complete. Light sleep can be entered now.");
+        vTaskDelete(NULL); // Delete this task once it's no longer needed
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Device is not in factory new state, light sleep block is not needed.");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        light_sleep_blocked = false;
+        vTaskDelete(NULL); // Delete this task once it's no longer needed
+    }
+
 }
 
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
