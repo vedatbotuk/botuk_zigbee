@@ -20,6 +20,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "random_utils.h"
+#include "freertos/FreeRTOS.h"
 
 #define INPUT_PIN GPIO_NUM_22
 

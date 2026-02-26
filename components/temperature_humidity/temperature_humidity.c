@@ -21,6 +21,7 @@
 #include "update_cluster.h"
 #include "macros.h"
 #include "random_utils.h"
+#include "freertos/FreeRTOS.h"
 
 static const char *TAG_TEMP_HUM = "TEMPERATURE_HUMIDITY_CHECK";
 
