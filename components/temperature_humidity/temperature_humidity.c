@@ -84,3 +84,17 @@ void check_humidity()
     zb_report_hum();
 #endif
 }
+
+void measure_temp_hum()
+{
+    while (1)
+    {
+        check_temperature();
+        check_humidity();
+#if !defined TESTING
+        vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
+#else
+        vTaskDelay(pdMS_TO_TICKS(30000)); // 30000 ms = 30 seconds
+#endif
+    }
+}
