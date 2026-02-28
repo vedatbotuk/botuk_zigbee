@@ -1,11 +1,12 @@
-MODEL_ID,         DEVICE_NAME, COMMENT
-0100000000000000, Router, Basic router with OTA update. Requires J5 jumper ESP32-H2-DevKitM-1.
-0100000010000000, Router, Router with OTA update and flashing capability. J5 jumper required ESP32-H2-DevKitM-1.
-1100000000000000, End Device, Development device for OTA testing.
-1100010001000000, End Device, Noel Star device with OTA and light sleep enabled.
-1100010010000000, End Device, Flashing device with feedback alarm, no battery cluster.
-1100110010000000, End Device, Flashing device with feedback alarm. J5 jumper required otherwise built-in light wont work.
-1101010000000000, End Device, Air quality sensor with BME680 support.
-1110010001000000, End Device, Noel Star with OTA, light sleep and temperature sensor.
-1110110000000000, End Device, Temperature & humidity sensor with OTA and light sleep.
-1110110001000000, End Device, Noel Star with OTA, light sleep, battery, and temperature sensor.
+MODEL_ID,         HW_VERSION, DEVICE_NAME,  COMMENT
+0100000000000000, 257,        Router,       Basic router with OTA update. Requires J5 jumper ESP32-H2-DevKitM-1.
+0100000010000000, 257,        Router,       Router with OTA update and flashing capability. J5 jumper required ESP32-H2-DevKitM-1.
+0100000010000000, 258,        Router,       Router with OTA update and flashing capability.
+1100000000000000, 257,        End Device,   Development device for OTA testing.
+1100010001000000, 257,        End Device,   Noel Star device with OTA and light sleep enabled.
+1100010010000000, 257,        End Device,   Flashing device with feedback alarm, no battery cluster.
+1100110010000000, 257,        End Device,   Flashing device with feedback alarm. J5 jumper required otherwise built-in light wont work.
+1101010000000000, 257,        End Device,   Air quality sensor with BME680 support.
+1110010001000000, 257,        End Device,   Noel Star with OTA, light sleep and temperature sensor.
+1110110000000000, 257,        End Device,   Temperature & humidity sensor with OTA and light sleep.
+1110110001000000, 257,        End Device,   Noel Star with OTA, light sleep, battery, and temperature sensor.
