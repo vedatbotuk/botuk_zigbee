@@ -17,7 +17,15 @@ The system is built around the **ESP32-H2**, which supports low-power applicatio
 More information about [ESP32-H2](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32h2/esp32-h2-devkitm-1/user_guide.html#getting-started).
 Below is the pinout diagram for the device:
 
-<img src="img/esp32-h2-devkitm-1-v1.2_pinlayout.png" alt="ESP32-H2 Pinout" width="60%"/>
+### ESP32-H2 devkitm-1
+Use `HW_VERSION=257`
+
+<img src="img/esp32-h2-devkitm-1-v1.2_pinlayout.png" alt="ESP32-H2 devkitm-1 Pinout" width="60%"/>
+
+### ESP32-H2-Zero
+Use `HW_VERSION=258`
+
+<img src="img/ESP32-H2-Zero_pinoutlayout.png" alt="ESP32-H2-Zero Pinout" width="60%"/>
 
 ## Zigpy Integration
 Zigpy is a Zigbee protocol stack enabling communication between Zigbee devices, used for wireless networking within the system.
