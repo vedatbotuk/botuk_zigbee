@@ -184,7 +184,7 @@ void bsec_task(void *pvParameters)
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = BME68X_ADDR,
-        .scl_speed_hz = 100000,
+        .scl_speed_hz = 400000,
     };
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
     ESP_LOGI(TAG_AIR_QUALITY, "I2C Initialized");
@@ -195,7 +195,7 @@ void bsec_task(void *pvParameters)
     bme_dev.delay_us = bus_delay_us;
     bme_dev.intf = BME68X_I2C_INTF;
     bme_dev.intf_ptr = &dev_handle;
-    bme_dev.amb_temp = 25;
+    bme_dev.amb_temp = 23;
 
     int8_t rslt = bme68x_init(&bme_dev);
     if (rslt != BME68X_OK)
