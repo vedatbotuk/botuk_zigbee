@@ -27,6 +27,7 @@ extern "C"
 
     void check_temperature();
     void check_humidity();
+    void measure_temp_hum();
 
 #ifdef __cplusplus
 }

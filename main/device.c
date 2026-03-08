@@ -62,106 +62,16 @@
 #ifdef BUILTIN_LIGHT
 #include "ha/esp_zigbee_ha_standard.h"
 #include "light_driver.h"
-#endif
-
-static const char *TAG = "DEVICE";
-// here can not add ifdef light sleep,
-// because it is used in signal handler
-static bool light_sleep_blocked = true;
-
-/********************* Define functions **************************/
-static void light_sleep_block(void *arg)
-{
-    if (esp_zb_bdb_is_factory_new())
-    {
-        ESP_LOGI(TAG, "Light sleep until Zigbee commissioning is blocked for 2 minutes.");
-        vTaskDelay(pdMS_TO_TICKS(60000)); // Check every second if light sleep can be entered
-        light_sleep_blocked = false;
-        ESP_LOGI(TAG, "Zigbee commissioning complete. Light sleep can be entered now.");
-        vTaskDelete(NULL); // Delete this task once it's no longer needed
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Device is not in factory new state, light sleep block is not needed.");
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        light_sleep_blocked = false;
-        vTaskDelete(NULL); // Delete this task once it's no longer needed
-    }
-
-}
-
-void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
-{
-    create_signal_handler(*signal_struct, light_sleep_blocked);
-}
-
-#if !defined DEEP_SLEEP
-#ifdef DHT22
-void measure_temp_hum()
-{
-    while (1)
-    {
-        check_temperature();
-        check_humidity();
-#if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(300000)); // 300000 ms = 5 minutes
-#else
-        vTaskDelay(pdMS_TO_TICKS(30000)); // 30000 ms = 30 seconds
-#endif
-    }
-}
-#endif
-
-#if defined BUILTIN_LIGHT
 static TaskHandle_t flash_task_handle = NULL;
 #endif
 
-#if defined BATTERY_FEATURES
-void measure_battery()
-{
-    while (1)
-    {
-        read_battery_level();
-        uint8_t bat_lev = get_battery_level();
-#if defined SWITCH_FEATURES || BUILTIN_LIGHT
-        if (bat_lev < 10)
-        {
-            ESP_LOGI(TAG, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
-#if defined SWITCH_FEATURES
-            switch_driver_set_power(0);
-#endif
-#if defined BUILTIN_LIGHT
-            // Stop flashing
-            if (flash_task_handle != NULL)
-            {
-                vTaskDelete(flash_task_handle);
-                flash_task_handle = NULL;
-            }
-            light_driver_set_power(false); // ensure LED is off
-#endif
-        }
-#endif
+static const char *TAG = "DEVICE";
 
-#if !defined TESTING
-        vTaskDelay(pdMS_TO_TICKS(900000)); // 900000 ms = 15 minutes
-#else
-        vTaskDelay(pdMS_TO_TICKS(10000)); // 60000 ms = 1 minutes
-#endif
-    }
-}
-#endif
-
-#ifdef WATERLEAK_FEATURES
-void waterleak_loop()
+/********************* Define functions **************************/
+void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
-    while (1)
-    {
-        check_waterleak();
-        vTaskDelay(pdMS_TO_TICKS(10000)); // 10000 ms = 10 seconds
-    }
+    create_signal_handler(*signal_struct);
 }
-#endif
-#endif
 
 #if defined SWITCH_FEATURES || defined BUILTIN_LIGHT
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
@@ -181,7 +91,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         {
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
             {
-#if defined BATTERY_FEATURES
+#ifdef BATTERY_FEATURES
                 if (get_battery_level() < 10)
                 {
                     ESP_LOGW(TAG, "Battery level is too low to change the switch state false.");
@@ -264,7 +174,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         zb_update_builtin_light_flash_green(0);
                         zb_update_builtin_light_flash_white(0);
                     }
-                    xTaskCreate(light_driver_set_yellow_light, "light_driver_set_yellow_light", 2048, NULL, 5, &flash_task_handle);
+                    xTaskCreate(light_driver_set_yellow_light, "light_driver_set_yellow_light", 2048, NULL, 4, &flash_task_handle);
                 }
                 else
                 {
@@ -540,7 +450,7 @@ static void update_rtc_time()
         zb_update_current_time(now);
         zb_update_local_time(now);
         // TODO can be optimized
-        vTaskDelay(pdMS_TO_TICKS(600000)); // 60000 ms = 1 minutes
+        vTaskDelay(pdMS_TO_TICKS(1800000)); // 60000 ms = 1 minutes
     }
 }
 
@@ -558,18 +468,16 @@ void app_main(void)
 #ifdef LIGHT_SLEEP
     ESP_ERROR_CHECK(esp_zb_power_save_init());
 #endif
-#if defined DEEP_SLEEP
+#ifdef DEEP_SLEEP
     zb_deep_sleep_init();
 #endif
 #ifdef SWITCH_FEATURES
     ESP_LOGI(TAG, "Deferred driver initialization %s", switch_driver_init(SWITCH_DEFAULT_OFF) ? "failed" : "successful");
 #endif
-#if !defined DEEP_SLEEP
 #if defined DHT22
     xTaskCreate(measure_temp_hum, "measure_temp_hum", 4096, NULL, 5, NULL);
 #endif
 #if defined BME680
-// TODO: implement BME680 task
 #if !defined SIMULATE
     xTaskCreate(bsec_task, "bsec", 10240, NULL, 5, NULL);
 #else
@@ -590,9 +498,7 @@ void app_main(void)
         ESP_LOGE(TAG, "Button init failed");
     }
 #endif
-#endif
     vTaskDelay(pdMS_TO_TICKS(1000)); // delay to ensure all tasks are up before starting Zigbee task
-    xTaskCreate(esp_zb_task, "Zigbee_main", 4 * 1024, NULL, 10, NULL);
-    xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 5, NULL);
-    xTaskCreate(light_sleep_block, "light_sleep_block", 4096, NULL, 5, NULL);
+    xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 10, NULL);
+    xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 3, NULL);
 }

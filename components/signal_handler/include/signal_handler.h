@@ -28,7 +28,7 @@ extern "C"
 
     // void sensor_map_status();
     bool connection_status(void);
-    void create_signal_handler(esp_zb_app_signal_t signal_struct, bool light_sleep_blocked);
+    void create_signal_handler(esp_zb_app_signal_t signal_struct);
 
 #ifdef __cplusplus
 }
