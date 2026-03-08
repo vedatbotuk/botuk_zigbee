@@ -69,7 +69,6 @@ fi
 FIRMWARE_VERSION=$(grep -oP '^FIRMWARE_VERSION=\K.*' settings.conf)
 VERSION=$(grep -oP '^VERSION=\K.*' settings.conf)
 MANUFACTURER=$(grep -oP '^MANUFACTURER=\K.*' settings.conf)
-HW_VERSION=$(grep -oP '^HW_VERSION=\K.*' settings.conf)
 
 echo ""
 echo "----------------------------------------"
@@ -80,10 +79,15 @@ echo "----------------------------------------"
   while IFS=',' read -r MODEL_ID DEVICE_NAME COMMENT || [ -n "$MODEL_ID" ]; do
       # Remove leading/trailing whitespaces
       MODEL_ID=$(echo "$MODEL_ID" | xargs)
+      HW_VERSION=$(echo "$HW_VERSION" | xargs)
 
       # Update the settings.conf file with the new MODEL_ID
       echo "Updating settings.conf with MODEL_ID: $MODEL_ID"
       sed -i "s/^MODEL_ID=.*/MODEL_ID=$MODEL_ID/" "$SETTINGS_FILE"
+
+      # Update the settings.conf file with the new HW_VERSION
+      echo "Updating settings.conf with HW_VERSION: $HW_VERSION"
+      sed -i "s/^HW_VERSION=.*/HW_VERSION=$HW_VERSION/" "$SETTINGS_FILE"
 
       # Set target for ESP32H2
       idf.py set-target esp32h2 > /dev/null 2>&1
@@ -106,7 +110,7 @@ echo "----------------------------------------"
       MODEL_ID_DECIMAL_FIVE=$(printf "%05d" "$MODEL_ID_DECIMAL")
 
       # Create FILE_NAME in the desired format
-      FILE_NAME="device_${MODEL_ID_DECIMAL_FIVE}_v${VERSION}prod.ota"
+      FILE_NAME="${MODEL_ID_DECIMAL_FIVE}_${HW_VERSION}_${VERSION}_prod.ota"
       FILE_PATH="ota/$FILE_NAME"
 
       # Get other metadata values
