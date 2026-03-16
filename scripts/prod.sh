@@ -76,7 +76,7 @@ echo "Starting the build process..."
 echo "----------------------------------------"
 {
   read  # Skip the header line
-  while IFS=',' read -r MODEL_ID DEVICE_NAME COMMENT || [ -n "$MODEL_ID" ]; do
+  while IFS=',' read -r MODEL_ID HW_VERSION DEVICE_NAME COMMENT || [ -n "$MODEL_ID" ]; do
       # Remove leading/trailing whitespaces
       MODEL_ID=$(echo "$MODEL_ID" | xargs)
       HW_VERSION=$(echo "$HW_VERSION" | xargs)
