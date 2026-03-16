@@ -238,7 +238,7 @@ add_definitions(-DOTA_UPGRADE_MANUFACTURER=${MANUFACTURER})
 #### ########## ####
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-set(FILE_NAME "device_${MODEL_ID_FORMATED}_v${VERSION}${DEV_PROD}")
+set(FILE_NAME "${MODEL_ID_FORMATED}_${HW_VERSION}_${VERSION}_${DEV_PROD}")
 project(${FILE_NAME})
 
 #### ###################### ####
