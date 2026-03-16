@@ -119,7 +119,11 @@ void light_driver_set_white_light(void *arg)
 void light_driver_loop(uint8_t level)
 {
     light_driver_init(true);
+#if HW_VERSION >= 258
+    light_driver_set_color_RGB(s_green, s_red, s_blue);
+#else
     light_driver_set_color_RGB(s_red, s_green, s_blue);
+#endif
     while (1)
     {
         light_driver_init(false);

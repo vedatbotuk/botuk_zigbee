@@ -20,6 +20,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "random_utils.h"
+#include "freertos/FreeRTOS.h"
 
 #define INPUT_PIN GPIO_NUM_22
 
@@ -93,4 +94,13 @@ esp_err_t button_init(void)
     gpio_set_direction(INPUT_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(INPUT_PIN, GPIO_PULLUP_ONLY);
     return ESP_OK;
+}
+
+void waterleak_loop()
+{
+    while (1)
+    {
+        check_waterleak();
+        vTaskDelay(pdMS_TO_TICKS(10000)); // 10000 ms = 10 seconds
+    }
 }

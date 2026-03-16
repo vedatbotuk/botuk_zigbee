@@ -107,3 +107,21 @@ esp_err_t get_battery_level()
     ESP_LOGI(TAG_VOL, "Get Battery level: %d %%", battery_lev);
     return battery_lev;
 }
+
+void measure_battery()
+{
+    while (1)
+    {
+        read_battery_level();
+        uint8_t bat_lev = get_battery_level();
+        if (bat_lev < 10)
+        {
+            ESP_LOGI(TAG_VOL, "Battery level is below 10%%. Consider replacing or recharging the battery soon.");
+        }
+#if !defined TESTING
+        vTaskDelay(pdMS_TO_TICKS(900000)); // 900000 ms = 15 minutes
+#else
+        vTaskDelay(pdMS_TO_TICKS(10000)); // 60000 ms = 1 minutes
+#endif
+    }
+}

@@ -27,6 +27,7 @@ extern "C"
 
     esp_err_t check_waterleak(void);
     esp_err_t button_init(void);
+    void waterleak_loop(void);
 
 #ifdef __cplusplus
 }

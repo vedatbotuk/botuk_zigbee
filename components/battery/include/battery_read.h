@@ -15,6 +15,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "freertos/FreeRTOS.h"
+
 #ifndef VOLTAGE_CALCULATE_H
 #define VOLTAGE_CALCULATE_H
 
@@ -25,6 +27,7 @@ extern "C"
 
     esp_err_t read_battery_level();
     esp_err_t get_battery_level();
+    void measure_battery();
 
 #ifdef __cplusplus
 }
