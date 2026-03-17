@@ -1,8 +1,8 @@
 import * as m from 'zigbee-herdsman-converters/lib/modernExtend';
 
 export default {
-    zigbeeModel: ['58432'],
-    model: '58432',
+    zigbeeModel: ['58432_257'],
+    model: '58432_257',
     vendor: 'Botuk',
     description: 'Noel Star with temperature and humidity sensor',
     extend: [

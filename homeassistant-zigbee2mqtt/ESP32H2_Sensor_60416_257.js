@@ -6,8 +6,8 @@ const ota = require('zigbee-herdsman-converters/lib/ota');
 const e = exposes.presets;
 
 const definition = {
-  zigbeeModel: ['60416'],
-  model: '60416',
+  zigbeeModel: ['60416_257'],
+  model: '60416_257',
   vendor: 'Botuk',
   description: 'end device Temp/Hum Sensor with ota',
   fromZigbee: [

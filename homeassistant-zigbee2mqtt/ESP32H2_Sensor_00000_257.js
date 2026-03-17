@@ -1,6 +1,6 @@
 export default {
-    zigbeeModel: ['00000'],
-    model: '00000',
+    zigbeeModel: ['00000_257'],
+    model: '00000_257',
     vendor: 'Botuk',
     description: 'Router device',
     extend: [],
