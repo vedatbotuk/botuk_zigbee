@@ -39,13 +39,26 @@ void light_driver_set_power(bool power)
 void light_driver_set_level(uint8_t level)
 {
     s_level = level;
+#if HW_VERSION == 258 or HW_VERSION == 257
     float ratio = (float)s_level / 255;
     ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_red * ratio, s_green * ratio, s_blue * ratio));
     ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
+#endif
+#if HW_VERSION == 256
+    if (level > 0)
+    {
+        gpio_set_level(GPIO_LIGHT, true);
+    }
+    else
+    {
+        gpio_set_level(GPIO_LIGHT, false);
+    }
+#endif
 }
 
 void light_driver_init(bool power)
 {
+#if HW_VERSION == 258 or HW_VERSION == 257
     if (s_led_strip != NULL)
     {
         ESP_LOGW("light_driver_init", "LED strip already initialized");
@@ -62,12 +75,28 @@ void light_driver_init(bool power)
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&led_strip_conf, &rmt_conf, &s_led_strip));
 
     light_driver_set_power(power);
+#endif
+#if HW_VERSION == 256
+    // GPIO configuration for an output
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_DISABLE,       // No interrupts for the pin
+        .mode = GPIO_MODE_OUTPUT,             // Set pin as output
+        .pin_bit_mask = GPIO_OUTPUT_PIN_SEL,  // Configure the desired pin
+        .pull_down_en = GPIO_PULLDOWN_ENABLE, // Enable pull-down
+        .pull_up_en = GPIO_PULLUP_DISABLE     // Disable pull-up
+    };
+
+    gpio_config(&io_conf); // Apply the configuration
+    gpio_sleep_sel_dis(GPIO_LIGHT);
+    gpio_set_level(GPIO_LIGHT, power);
+#endif
 }
 
 void light_driver_deinit()
 {
     if (s_led_strip)
     {
+#if HW_VERSION == 258 or HW_VERSION == 257
         // Turn off all LEDs
         led_strip_clear(s_led_strip);
         led_strip_refresh(s_led_strip);
@@ -75,7 +104,12 @@ void light_driver_deinit()
         // Delete RMT device (VERY IMPORTANT)
         led_strip_del(s_led_strip);
         // ESP_LOGI("light_driver_deinit", "LED strip deinitialized and resources freed");
-
+#endif
+#if HW_VERSION == 256
+        gpio_set_level(GPIO_LIGHT, 0);  // optional: set low
+        gpio_sleep_sel_dis(GPIO_LIGHT); // disable sleep selection
+        gpio_reset_pin(GPIO_LIGHT);     // reset configuration
+#endif
         s_led_strip = NULL;
     }
 }
@@ -119,10 +153,8 @@ void light_driver_set_white_light(void *arg)
 void light_driver_loop(uint8_t level)
 {
     light_driver_init(true);
-#if HW_VERSION >= 258
+#if HW_VERSION == 258
     light_driver_set_color_RGB(s_green, s_red, s_blue);
-#else
-    light_driver_set_color_RGB(s_red, s_green, s_blue);
 #endif
     while (1)
     {

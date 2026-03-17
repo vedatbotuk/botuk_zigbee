@@ -30,6 +30,7 @@ extern "C" {
 /* LED strip configuration */
 #define CONFIG_EXAMPLE_STRIP_LED_GPIO   8
 #define CONFIG_EXAMPLE_STRIP_LED_NUMBER 1
+#define GPIO_LIGHT 9
 
 /**
 * @brief Set light power (on/off).
