@@ -127,7 +127,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 light_driver_set_power(light_state);
             }
             break;
-#elif HW_VERSION == 258 or HW_VERSION == 257
+#elif HW_VERSION == 258 || HW_VERSION == 257
         case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)

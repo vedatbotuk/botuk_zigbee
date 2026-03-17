@@ -39,7 +39,7 @@ void light_driver_set_power(bool power)
 void light_driver_set_level(uint8_t level)
 {
     s_level = level;
-#if HW_VERSION == 258 or HW_VERSION == 257
+#if HW_VERSION == 258 || HW_VERSION == 257
     float ratio = (float)s_level / 255;
     ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, 0, s_red * ratio, s_green * ratio, s_blue * ratio));
     ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
@@ -58,7 +58,7 @@ void light_driver_set_level(uint8_t level)
 
 void light_driver_init(bool power)
 {
-#if HW_VERSION == 258 or HW_VERSION == 257
+#if HW_VERSION == 258 || HW_VERSION == 257
     if (s_led_strip != NULL)
     {
         ESP_LOGW("light_driver_init", "LED strip already initialized");
@@ -96,7 +96,7 @@ void light_driver_deinit()
 {
     if (s_led_strip)
     {
-#if HW_VERSION == 258 or HW_VERSION == 257
+#if HW_VERSION == 258 || HW_VERSION == 257
         // Turn off all LEDs
         led_strip_clear(s_led_strip);
         led_strip_refresh(s_led_strip);
