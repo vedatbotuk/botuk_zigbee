@@ -59,6 +59,7 @@ if(EXISTS ${SETTINGS_FILE})
 
     # Add other settings as preprocessor definitions
     add_definitions(-DFIRMWARE_VERSION="${FIRMWARE_VERSION}")
+    add_definitions(-DHW_VERSION=${HW_VERSION})
     add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
     add_definitions(-DED_KEEP_ALIVE=${ED_KEEP_ALIVE})
     if(TESTING EQUAL "1")
@@ -133,7 +134,7 @@ endfunction()
 add_definitions(-DSENSOR_MAP=0b${MODEL_ID})
 binary_to_decimal(${MODEL_ID} MODEL_ID_DECIMAL)
 format_decimal(${MODEL_ID_DECIMAL} 5 MODEL_ID_FORMATED)
-add_definitions(-DMODEL_ID_MAP=${MODEL_ID_FORMATED})
+add_definitions(-DMODEL_ID_MAP=${MODEL_ID_FORMATED}_${HW_VERSION})
 add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
 #### Convert Macros ####
 #### ############## ####

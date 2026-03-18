@@ -42,8 +42,8 @@ const addCustomClusters = () => [
 ];
 
 const definition = {
-    zigbeeModel: ['54272_257'],
-    model: '54272_257',
+    zigbeeModel: ['54272_127'],
+    model: '54272_127',
     vendor: 'Botuk',
     description: 'ESP32H2 Sensor Device Air Quality Sensor',
 

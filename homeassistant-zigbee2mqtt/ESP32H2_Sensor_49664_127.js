@@ -1,6 +1,6 @@
 const definition = {
-  zigbeeModel: ['49664_257'], // The model ID from: Device with modelID 'lumi.sens' is not supported.
-  model: '49664_257', // Vendor model number, look on the device for a model number
+  zigbeeModel: ['49664_127'], // The model ID from: Device with modelID 'lumi.sens' is not supported.
+  model: '49664_127', // Vendor model number, look on the device for a model number
   vendor: 'Botuk', // Vendor of the device (only used for documentation and startup logging)
   description: 'test end device deep-sleep', // Description of the device, copy from vendor site. (only used for documentation and startup logging)
   extend: [],

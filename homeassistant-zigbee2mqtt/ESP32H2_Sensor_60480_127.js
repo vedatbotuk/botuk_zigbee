@@ -6,22 +6,21 @@ const ota = require('zigbee-herdsman-converters/lib/ota');
 const e = exposes.presets;
 
 const definition = {
-  zigbeeModel: ['60416_257'],
-  model: '60416_257',
+  zigbeeModel: ['60480_127'],
+  model: '60480_127',
   vendor: 'Botuk',
-  description: 'end device Temp/Hum Sensor with ota',
+  description: 'Simple on/off light device',
   fromZigbee: [
+    fz.on_off,
     fz.temperature,
-    fz.humidity,
     fz.battery
   ],
-  toZigbee: [],
-
+  toZigbee: [tz.on_off],
   configure: async (device, coordinatorEndpoint) => {
     const endpoint = device.getEndpoint(10);
     const bindClusters = [
+      'genOnOff',
       'msTemperatureMeasurement',
-      'msRelativeHumidity',
       'genPowerCfg'
     ];
 
@@ -36,18 +35,18 @@ const definition = {
       // Handle binding failure silently
     }
 
-    // Configure reporting for temperature, humidity, and battery
+    // Configure reporting for temperature, battery, and on/off state
     try {
-      await reporting.temperature(endpoint, { min: 300, max: 3600, change: 100 });
-      await reporting.humidity(endpoint, { min: 300, max: 3600, change: 100 });
-      await reporting.batteryPercentageRemaining(endpoint, { min: 3600, max: 65000, change: 1 });
+      await reporting.temperature(endpoint, { min: 600, max: 65000, change: 100 });
+      await reporting.batteryPercentageRemaining(endpoint, { min: 600, max: 65000, change: 1 });
+      await reporting.onOff(endpoint, { min: 0, max: 3600, change: 0 });
     } catch (error) {
       // Handle reporting configuration failure silently
     }
   },
   exposes: [
+    e.switch(),
     e.temperature(),
-    e.humidity(),
     e.battery()
   ],
   ota: true

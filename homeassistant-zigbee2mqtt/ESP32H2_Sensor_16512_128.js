@@ -37,8 +37,8 @@ const addCustomClusters = () => [
 ];
 
 const definition = {
-    zigbeeModel: ['16512_258'],
-    model: '16512_258',
+    zigbeeModel: ['16512_128'],
+    model: '16512_128',
     vendor: 'Botuk',
     description: 'Router ESP32H2 Zero LED status indicator',
 
