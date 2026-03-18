@@ -117,6 +117,40 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     {
         switch (message->info.cluster)
         {
+#if HW_VERSION == 126
+        case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
+            {
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing red light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
+                    }
+                    xTaskCreate(gpio_light_driver_loop, "light_driver_set_red_light", 2048, NULL, 1, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing red light");
+                    }
+                    light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                }
+            }
+            break;
+#elif HW_VERSION == 128 || HW_VERSION == 127
         case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
@@ -269,6 +303,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 }
             }
             break;
+#endif
         default:
             ESP_LOGI(TAG, "Message data: cluster(0x%x), attribute(0x%x)  ", message->info.cluster, message->attribute.id);
         }

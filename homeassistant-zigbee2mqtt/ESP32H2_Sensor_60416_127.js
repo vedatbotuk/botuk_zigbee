@@ -6,17 +6,17 @@ const ota = require('zigbee-herdsman-converters/lib/ota');
 const e = exposes.presets;
 
 const definition = {
-  zigbeeModel: ['30976'],
-  model: '30976',
+  zigbeeModel: ['60416_127'],
+  model: '60416_127',
   vendor: 'Botuk',
-  description: 'Test router temperature, humidity, and water leak sensor with OTA support',
+  description: 'end device Temp/Hum Sensor with ota',
   fromZigbee: [
     fz.temperature,
     fz.humidity,
-    fz.ias_water_leak_alarm_1,
     fz.battery
   ],
-  toZigbee: [], // No specific commands to send for this device
+  toZigbee: [],
+
   configure: async (device, coordinatorEndpoint) => {
     const endpoint = device.getEndpoint(10);
     const bindClusters = [
@@ -38,9 +38,9 @@ const definition = {
 
     // Configure reporting for temperature, humidity, and battery
     try {
-      await reporting.temperature(endpoint, { min: 10, max: 60, change: 100 });
-      await reporting.humidity(endpoint, { min: 10, max: 60, change: 100 });
-      await reporting.batteryPercentageRemaining(endpoint, { min: 30, max: 60, change: 0 });
+      await reporting.temperature(endpoint, { min: 300, max: 3600, change: 100 });
+      await reporting.humidity(endpoint, { min: 300, max: 3600, change: 100 });
+      await reporting.batteryPercentageRemaining(endpoint, { min: 3600, max: 65000, change: 1 });
     } catch (error) {
       // Handle reporting configuration failure silently
     }
@@ -48,13 +48,9 @@ const definition = {
   exposes: [
     e.temperature(),
     e.humidity(),
-    e.battery(),
-    e.water_leak(), // Water leakage detection
-    e.battery_low(), // Low battery warning
-    e.tamper() // Tamper detection
+    e.battery()
   ],
   ota: true
 };
 
 module.exports = definition;
-

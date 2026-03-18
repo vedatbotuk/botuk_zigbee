@@ -7,8 +7,8 @@ const e = exposes.presets;
 const ea = exposes.access;
 
 const definition = {
-  zigbeeModel: ['52352'],
-  model: '52352',
+  zigbeeModel: ['52352_127'],
+  model: '52352_127',
   vendor: 'Botuk',
   description: 'Builtin flashing LED for visual indication',
   fromZigbee: [

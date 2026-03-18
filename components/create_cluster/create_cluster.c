@@ -30,10 +30,11 @@
 
 static char *manufacturer = "\x05"
                             "Botuk";
-static char *model = "\x05" TOSTRING(MODEL_ID_MAP);
+static char *model = "\x09" TOSTRING(MODEL_ID_MAP);
 static const char *TAG_CREATE_CLUSTER = "Create_Cluster";
 static RTC_DATA_ATTR uint8_t lastBatteryPercentageRemaining = 0x8C;
 static uint8_t test_attr;
+static const uint8_t hw_version = HW_VERSION;
 
 static void convert_version(const char *version_string, char *firmware_version, size_t buffer_size)
 {
@@ -78,6 +79,7 @@ void create_basic_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     esp_zb_attribute_list_t *esp_zb_basic_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_BASIC);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
+    esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_HW_VERSION_ID, &hw_version);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_SW_BUILD_ID, firmware_version);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_ZCL_VERSION_ID, &test_attr);
     esp_zb_basic_cluster_add_attr(esp_zb_basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &power_source);
