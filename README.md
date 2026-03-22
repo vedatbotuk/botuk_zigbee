@@ -58,7 +58,7 @@ To set up the environment for building the project, follow these steps:
 ### Zigpy Installation
 To install Zigpy for Zigbee communication:
 ```bash
-pip3 install zigpy
+pip3 install zigpy detools>=0.49.0
 ```
 
 ## Build and Flash Instructions
