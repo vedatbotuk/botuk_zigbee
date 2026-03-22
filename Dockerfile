@@ -33,7 +33,7 @@ ENV IDF_PATH_FORCE=1
 ENV PATH=${IDF_PATH}/tools:${PATH}
 
 # Install Zigpy with ESP-IDF's Python environment
-RUN . ${IDF_PATH}/export.sh && pip install zigpy
+RUN . ${IDF_PATH}/export.sh && pip install zigpy detools>=0.49.0
 
 # Copy and install self-signed certificate
 COPY ./botuk.crt /usr/local/share/ca-certificates/
