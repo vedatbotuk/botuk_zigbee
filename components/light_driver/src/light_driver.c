@@ -65,7 +65,7 @@ void light_driver_init(bool power)
 
     light_driver_set_power(power);
 #endif
-#if HW_VERSION == 126
+#if HW_VERSION == 126 || HW_VERSION == 125
     // GPIO configuration for an output
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,       // No interrupts for the pin
@@ -76,8 +76,12 @@ void light_driver_init(bool power)
     };
 
     gpio_config(&io_conf); // Apply the configuration
-    gpio_sleep_sel_dis(GPIO_LIGHT);
-    gpio_set_level(GPIO_LIGHT, power);
+    gpio_sleep_sel_dis(GPIO_LIGHT_RED);
+    gpio_set_level(GPIO_LIGHT_RED, power);
+#if HW_VERSION == 125
+    gpio_sleep_sel_dis(GPIO_LIGHT_YELLOW);
+    gpio_set_level(GPIO_LIGHT_YELLOW, power);
+#endif
 #endif
 }
 
@@ -96,9 +100,13 @@ void light_driver_deinit()
         s_led_strip = NULL;
     }
 #endif
-#if HW_VERSION == 126
-        gpio_set_level(GPIO_LIGHT, 0);  // optional: set low
-        gpio_reset_pin(GPIO_LIGHT);     // reset configuration
+#if HW_VERSION == 126 || HW_VERSION == 125
+        gpio_set_level(GPIO_LIGHT_RED, 0);  // optional: set low
+        gpio_reset_pin(GPIO_LIGHT_RED);     // reset configuration
+#if HW_VERSION == 125
+        gpio_set_level(GPIO_LIGHT_YELLOW, 0);  // optional: set low
+        gpio_reset_pin(GPIO_LIGHT_YELLOW);     // reset configuration
+#endif
 #endif
 
 }
@@ -161,20 +169,38 @@ void light_driver_loop(uint8_t level)
     }
 }
 
-void gpio_light_driver_loop(void *arg)
+void gpio_light_driver_loop_red(void *arg)
 {
     light_driver_init(false);
 
     while (1)
     {
-        gpio_hold_dis(GPIO_LIGHT);
-        gpio_set_level(GPIO_LIGHT, true);
-        gpio_hold_en(GPIO_LIGHT);
+        gpio_hold_dis(GPIO_LIGHT_RED);
+        gpio_set_level(GPIO_LIGHT_RED, true);
+        gpio_hold_en(GPIO_LIGHT_RED);
         vTaskDelay(pdMS_TO_TICKS(10));
 
-        gpio_hold_dis(GPIO_LIGHT);
-        gpio_set_level(GPIO_LIGHT, false);
-        gpio_hold_en(GPIO_LIGHT);
+        gpio_hold_dis(GPIO_LIGHT_RED);
+        gpio_set_level(GPIO_LIGHT_RED, false);
+        gpio_hold_en(GPIO_LIGHT_RED);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+}
+
+void gpio_light_driver_loop_yellow(void *arg)
+{
+    light_driver_init(false);
+
+    while (1)
+    {
+        gpio_hold_dis(GPIO_LIGHT_YELLOW);
+        gpio_set_level(GPIO_LIGHT_YELLOW, true);
+        gpio_hold_en(GPIO_LIGHT_YELLOW);
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+        gpio_hold_dis(GPIO_LIGHT_YELLOW);
+        gpio_set_level(GPIO_LIGHT_YELLOW, false);
+        gpio_hold_en(GPIO_LIGHT_YELLOW);
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
