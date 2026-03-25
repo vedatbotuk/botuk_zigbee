@@ -5,7 +5,8 @@ MODEL_ID,         MODEL_ID_DECIMAL, HW_VERSION, DEVICE_NAME,  COMMENT
 1100000000000000, 49152,            127,        End Device,   Development device for OTA testing.
 1100010001000000, 50240,            127,        End Device,   Noel Star device with OTA and light sleep enabled.
 1100010010000000, 50304,            127,        End Device,   Flashing(Buildin LED) device with feedback alarm, no battery cluster. J5 jumper required otherwise built-in light wont work.
-1100010010000000, 50304,            126,        End Device,   Flashing(LED) device with feedback alarm, no battery cluster.
+1100010010000000, 50304,            126,        End Device,   Flashing(LED) RED device with feedback alarm, no battery cluster.
+1100010010000000, 50304,            125,        End Device,   Flashing(LED) RED YELLOW device with feedback alarm, no battery cluster.
 1100110010000000, 52352,            127,        End Device,   Flashing(Buildin LED) device with feedback alarm. J5 jumper required otherwise built-in light wont work.
 1101010000000000, 54272,            127,        End Device,   Air quality sensor with BME680 support.
 1110010001000000, 58432,            127,        End Device,   Noel Star with OTA, light sleep and temperature sensor.

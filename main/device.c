@@ -117,7 +117,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     {
         switch (message->info.cluster)
         {
-#if HW_VERSION == 126
+#if HW_VERSION == 126 || HW_VERSION == 125
         case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
@@ -133,8 +133,11 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     {
                         vTaskDelete(flash_task_handle);
                         ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
+#if HW_VERSION == 125
+                        zb_update_builtin_light_flash_yellow(0);
+#endif
                     }
-                    xTaskCreate(gpio_light_driver_loop, "light_driver_set_red_light", 2048, NULL, 1, &flash_task_handle);
+                    xTaskCreate(gpio_light_driver_loop_red, "light_driver_set_red_light", 2048, NULL, 1, &flash_task_handle);
                 }
                 else
                 {
@@ -147,9 +150,48 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     }
                     light_driver_deinit();
                     zb_update_builtin_light_flash_red(0);
+#if HW_VERSION == 125
+                    zb_update_builtin_light_flash_yellow(0);
+#endif
                 }
             }
             break;
+#if HW_VERSION == 125
+        case ESP_ZB_ZCL_CLUSTER_ID_YELLOW_LIGHT_ON_OFF:
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_YELLOW_LIGHT_ON_OFF_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
+            {
+                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
+                if (light_state)
+                {
+                    if (flash_task_handle == NULL)
+                    {
+                        ESP_LOGI(TAG, "Started flashing yellow light");
+                    }
+                    else
+                    {
+                        vTaskDelete(flash_task_handle);
+                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
+                        zb_update_builtin_light_flash_red(0);
+                    }
+                    xTaskCreate(gpio_light_driver_loop_yellow, "light_driver_set_yellow_light", 2048, NULL, 1, &flash_task_handle);
+                }
+                else
+                {
+                    // Stop flashing
+                    if (flash_task_handle != NULL)
+                    {
+                        vTaskDelete(flash_task_handle);
+                        flash_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped flashing yellow light");
+                    }
+                    light_driver_deinit();
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                }
+            }
+            break;
+#endif
 #elif HW_VERSION == 128 || HW_VERSION == 127
         case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&

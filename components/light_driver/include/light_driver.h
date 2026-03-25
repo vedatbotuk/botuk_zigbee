@@ -30,8 +30,9 @@ extern "C" {
 /* LED strip configuration */
 #define CONFIG_EXAMPLE_STRIP_LED_GPIO   8
 #define CONFIG_EXAMPLE_STRIP_LED_NUMBER 1
-#define GPIO_LIGHT 12
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_LIGHT))
+#define GPIO_LIGHT_RED 12
+#define GPIO_LIGHT_YELLOW 25
+#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_LIGHT_RED) | (1ULL << GPIO_LIGHT_YELLOW))
 
 /**
 * @brief Set light power (on/off).
@@ -96,7 +97,8 @@ void light_driver_loop(uint8_t level);
 /* @brief GPIO loop for flashing light
 * @param  arg  The argument to be passed
 */
-void gpio_light_driver_loop(void *arg);
+void gpio_light_driver_loop_red(void *arg);
+void gpio_light_driver_loop_yellow(void *arg);
 
 #ifdef __cplusplus
 } // extern "C"
