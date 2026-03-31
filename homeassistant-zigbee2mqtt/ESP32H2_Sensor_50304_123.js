@@ -12,12 +12,12 @@ const NS = 'zhc:botuk';
  * Custom Clusters Definition
  */
 const addCustomClusters = () => [
-    deviceAddCustomCluster('redLight', {
+    deviceAddCustomCluster('redLightBuzzer', {
         ID: 0xFC07,
         attributes: { onOff: { ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
     }),
-    deviceAddCustomCluster('yellowLight', {
+    deviceAddCustomCluster('yellowLightBuzzer', {
         ID: 0xFC08,
         attributes: { onOff: { ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
@@ -35,22 +35,22 @@ const definition = {
 
         // Using name: 'state_red' here creates the 'state_red' expose automatically
         binary({
-            name: 'state_red',
-            cluster: 'redLight',
+            name: 'state_red_buzzer',
+            cluster: 'redLightBuzzer',
             attribute: 'onOff',
             valueOn: ['ON', 1],
             valueOff: ['OFF', 0],
-            description: 'Red LED on/off state',
+            description: 'Red LED on/off state and Buzzer',
             // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL', // This enables GET, SET, and STATE (reporting)
         }),
         binary({
-            name: 'state_yellow',
-            cluster: 'yellowLight',
+            name: 'state_yellow_buzzer',
+            cluster: 'yellowLightBuzzer',
             attribute: 'onOff',
             valueOn: ['ON', 1],
             valueOff: ['OFF', 0],
-            description: 'Yellow LED on/off state',
+            description: 'Yellow LED on/off state and Buzzer',
             // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL',
         })
@@ -63,18 +63,18 @@ const definition = {
             const state = msg.data['onOff'] !== undefined ? (msg.data['onOff'] ? 'ON' : 'OFF') : null;
             if (state) {
                 // Map cluster ID back to our state name
-                const clusterMap = { 0xFC07: 'state_red', 0xFC08: 'state_yellow'};
+                const clusterMap = { 0xFC07: 'state_red_buzzer', 0xFC08: 'state_yellow_buzzer'};
                 return { [clusterMap[msg.cluster]]: state };
             }
         },
     }],
 
     toZigbee: [{
-        key: ['state_red', 'state_yellow'],
+        key: ['state_red_buzzer', 'state_yellow_buzzer'],
         convertSet: async (entity, key, value, meta) => {
             const clusterMap = {
-                'state_red': 0xFC07,
-                'state_yellow': 0xFC08
+                'state_red_buzzer': 0xFC07,
+                'state_yellow_buzzer': 0xFC08
             };
 
             const clusterId = clusterMap[key];
@@ -94,8 +94,8 @@ const definition = {
 
         convertGet: async (entity, key, meta) => {
             const clusterMap = {
-                'state_red': 0xFC07,
-                'state_yellow': 0xFC08
+                'state_red_buzzer': 0xFC07,
+                'state_yellow_buzzer': 0xFC08
             };
 
             await entity.read(

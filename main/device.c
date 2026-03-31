@@ -148,6 +148,11 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     }
                     xTaskCreate(gpio_light_driver_loop_red, "light_driver_set_red_light", 2048, NULL, 1, &flash_task_handle);
 #if HW_VERSION == 124 || HW_VERSION == 123
+                    if (buzzer_task_handle != NULL)
+                    {
+                        vTaskDelete(buzzer_task_handle);
+                        ESP_LOGI(TAG, "Already buzzing for another light, stopping buzzer task and starting to buzz for red light");
+                    }
                     xTaskCreate(gpio_buzzer_driver_loop, "buzzer_driver_loop", 2048, &buzzer_wait_red, 5, &buzzer_task_handle);
 #endif
                     zb_update_builtin_light_flash_red(1);
@@ -199,6 +204,11 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     }
                     xTaskCreate(gpio_light_driver_loop_yellow, "light_driver_set_yellow_light", 2048, NULL, 1, &flash_task_handle);
 #if HW_VERSION == 123
+                    if (buzzer_task_handle != NULL)
+                    {
+                        vTaskDelete(buzzer_task_handle);
+                        ESP_LOGI(TAG, "Already buzzing for another light, stopping buzzer task and starting to buzz for yellow light");
+                    }
                     xTaskCreate(gpio_buzzer_driver_loop, "gpio_buzzer_driver_loop", 2048, &buzzer_wait_yellow, 5, &buzzer_task_handle);
 #endif
                 }

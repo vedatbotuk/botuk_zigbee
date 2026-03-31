@@ -43,13 +43,14 @@ void gpio_buzzer_driver_loop(void *arg)
 {
     uint32_t wait_time = *(uint32_t *)arg;
     buzzer_driver_init(false);
+    vTaskDelay(pdMS_TO_TICKS(1000)); // without this delay, curren draw 150mA (Transmiting+Buzzer)
 
     while (1)
     {
         gpio_hold_dis(GPIO_BUZZER);
         gpio_set_level(GPIO_BUZZER, true);
         gpio_hold_en(GPIO_BUZZER);
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         gpio_hold_dis(GPIO_BUZZER);
         gpio_set_level(GPIO_BUZZER, false);
