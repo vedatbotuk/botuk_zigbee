@@ -4,8 +4,6 @@ const {
 } = require('zigbee-herdsman-converters/lib/modernExtend');
 
 const { logger } = require('zigbee-herdsman-converters/lib/logger');
-// const exposes = require('zigbee-herdsman-converters/lib/exposes');
-// const ea = exposes.presets;
 const reporting = require('zigbee-herdsman-converters/lib/reporting');
 
 const NS = 'zhc:botuk';
@@ -23,24 +21,14 @@ const addCustomClusters = () => [
         ID: 0xFC08,
         attributes: { onOff: { ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
-    }),
-    deviceAddCustomCluster('greenLight', {
-        ID: 0xFC09,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
-        commands: {}, commandsResponse: {},
-    }),
-    deviceAddCustomCluster('whiteLight', {
-        ID: 0xFC0A,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
-        commands: {}, commandsResponse: {},
     })
 ];
 
 const definition = {
-    zigbeeModel: ['50304_127'],
-    model: '50304_127',
+    zigbeeModel: ['50304_123'],
+    model: '50304_123',
     vendor: 'Botuk',
-    description: 'ESP32H2 LED status indicator',
+    description: 'ESP32H2 Red, Yellow LED status indicator and Buzzer',
 
     extend: [
         ...addCustomClusters(),
@@ -65,27 +53,7 @@ const definition = {
             description: 'Yellow LED on/off state',
             // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL',
-        }),
-        binary({
-            name: 'state_green',
-            cluster: 'greenLight',
-            attribute: 'onOff',
-            valueOn: ['ON', 1],
-            valueOff: ['OFF', 0],
-            description: 'Green LED on/off state',
-            // reporting: { min: 1, max: 3600, change: 1 },
-            access: 'ALL',
-        }),
-        binary({
-            name: 'state_white',
-            cluster: 'whiteLight',
-            attribute: 'onOff',
-            valueOn: ['ON', 1],
-            valueOff: ['OFF', 0],
-            description: 'White LED on/off state',
-            // reporting: { min: 1, max: 3600, change: 1 },
-            access: 'ALL',
-        }),
+        })
     ],
 
     fromZigbee: [{
@@ -95,20 +63,18 @@ const definition = {
             const state = msg.data['onOff'] !== undefined ? (msg.data['onOff'] ? 'ON' : 'OFF') : null;
             if (state) {
                 // Map cluster ID back to our state name
-                const clusterMap = { 0xFC07: 'state_red', 0xFC08: 'state_yellow', 0xFC09: 'state_green', 0xFC0A: 'state_white' };
+                const clusterMap = { 0xFC07: 'state_red', 0xFC08: 'state_yellow'};
                 return { [clusterMap[msg.cluster]]: state };
             }
         },
     }],
 
     toZigbee: [{
-        key: ['state_red', 'state_yellow', 'state_green', 'state_white'],
+        key: ['state_red', 'state_yellow'],
         convertSet: async (entity, key, value, meta) => {
             const clusterMap = {
                 'state_red': 0xFC07,
-                'state_yellow': 0xFC08,
-                'state_green': 0xFC09,
-                'state_white': 0xFC0A,
+                'state_yellow': 0xFC08
             };
 
             const clusterId = clusterMap[key];
@@ -129,9 +95,7 @@ const definition = {
         convertGet: async (entity, key, meta) => {
             const clusterMap = {
                 'state_red': 0xFC07,
-                'state_yellow': 0xFC08,
-                'state_green': 0xFC09,
-                'state_white': 0xFC0A,
+                'state_yellow': 0xFC08
             };
 
             await entity.read(
@@ -142,17 +106,10 @@ const definition = {
         },
     }],
 
-    // exposes: [
-    //     exposes.binary('state_red', ea.ALL, 'ON', 'OFF').withDescription('Red LED'),
-    //     exposes.binary('state_yellow', ea.ALL, 'ON', 'OFF').withDescription('Yellow LED'),
-    //     exposes.binary('state_green', ea.ALL, 'ON', 'OFF').withDescription('Green LED'),
-    //     exposes.binary('state_white', ea.ALL, 'ON', 'OFF').withDescription('White LED'),
-    // ],
-
     // TODO: This we dont nedd
     configure: async (device, coordinatorEndpoint) => {
         const endpoint = device.getEndpoint(10);
-        const clusters = [0xFC07, 0xFC08, 0xFC09, 0xFC0A];
+        const clusters = [0xFC07, 0xFC08];
         for (const cluster of clusters) {
             try {
                 await endpoint.bind(cluster, coordinatorEndpoint);

@@ -65,6 +65,15 @@
 static TaskHandle_t flash_task_handle = NULL;
 #endif
 
+#if HW_VERSION == 124 || HW_VERSION == 123
+#include "buzzer_driver.h"
+static TaskHandle_t buzzer_task_handle = NULL;
+static uint32_t buzzer_wait_red = 10000; // 10 seconds
+#if HW_VERSION == 123
+static uint32_t buzzer_wait_yellow = 60000; // 60 seconds
+#endif
+#endif
+
 static const char *TAG = "DEVICE";
 
 /********************* Define functions **************************/
@@ -117,7 +126,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     {
         switch (message->info.cluster)
         {
-#if HW_VERSION == 126 || HW_VERSION == 125
+#if HW_VERSION == 126 || HW_VERSION == 125 || HW_VERSION == 124 || HW_VERSION == 123
         case ESP_ZB_ZCL_CLUSTER_ID_RED_LIGHT_ON_OFF:
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_RED_LIGHT_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
@@ -133,11 +142,15 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     {
                         vTaskDelete(flash_task_handle);
                         ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
-#if HW_VERSION == 125
+#if HW_VERSION == 125 || HW_VERSION == 123
                         zb_update_builtin_light_flash_yellow(0);
 #endif
                     }
                     xTaskCreate(gpio_light_driver_loop_red, "light_driver_set_red_light", 2048, NULL, 1, &flash_task_handle);
+#if HW_VERSION == 124 || HW_VERSION == 123
+                    xTaskCreate(gpio_buzzer_driver_loop, "buzzer_driver_loop", 2048, &buzzer_wait_red, 5, &buzzer_task_handle);
+#endif
+                    zb_update_builtin_light_flash_red(1);
                 }
                 else
                 {
@@ -148,15 +161,25 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         flash_task_handle = NULL;
                         ESP_LOGI(TAG, "Stopped flashing red light");
                     }
-                    light_driver_deinit();
+                    gpio_light_driver_deinit();
                     zb_update_builtin_light_flash_red(0);
-#if HW_VERSION == 125
+#if HW_VERSION == 125 || HW_VERSION == 123
                     zb_update_builtin_light_flash_yellow(0);
+#endif
+#if HW_VERSION == 124 || HW_VERSION == 123
+                    // Stop buzzer
+                    if (buzzer_task_handle != NULL)
+                    {
+                        vTaskDelete(buzzer_task_handle);
+                        buzzer_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped buzzer");
+                    }
+                    buzzer_driver_deinit();
 #endif
                 }
             }
             break;
-#if HW_VERSION == 125
+#if HW_VERSION == 125 || HW_VERSION == 123
         case ESP_ZB_ZCL_CLUSTER_ID_YELLOW_LIGHT_ON_OFF:
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_YELLOW_LIGHT_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL)
@@ -175,6 +198,9 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         zb_update_builtin_light_flash_red(0);
                     }
                     xTaskCreate(gpio_light_driver_loop_yellow, "light_driver_set_yellow_light", 2048, NULL, 1, &flash_task_handle);
+#if HW_VERSION == 123
+                    xTaskCreate(gpio_buzzer_driver_loop, "gpio_buzzer_driver_loop", 2048, &buzzer_wait_yellow, 5, &buzzer_task_handle);
+#endif
                 }
                 else
                 {
@@ -185,9 +211,19 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         flash_task_handle = NULL;
                         ESP_LOGI(TAG, "Stopped flashing yellow light");
                     }
-                    light_driver_deinit();
+                    gpio_light_driver_deinit();
                     zb_update_builtin_light_flash_red(0);
                     zb_update_builtin_light_flash_yellow(0);
+#if HW_VERSION == 123
+                    // Stop buzzer
+                    if (buzzer_task_handle != NULL)
+                    {
+                        vTaskDelete(buzzer_task_handle);
+                        buzzer_task_handle = NULL;
+                        ESP_LOGI(TAG, "Stopped buzzer");
+                    }
+                    buzzer_driver_deinit();
+#endif
                 }
             }
             break;

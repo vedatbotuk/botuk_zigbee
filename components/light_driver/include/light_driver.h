@@ -49,9 +49,21 @@ void light_driver_set_power(bool power);
 void light_driver_init(bool power);
 
 /**
+ * @brief GPIO light driver init, be invoked where you want to use GPIO light
+ *
+ * @param power power on/off
+ */
+void gpio_light_driver_init(bool power);
+
+/**
  * @brief Deinitialize the light driver, free resources
  */
 void light_driver_deinit();
+
+/**
+* @brief Deinitialize the GPIO light driver, free resources
+*/
+void gpio_light_driver_deinit();
 
 /**
 * @brief Set light level
