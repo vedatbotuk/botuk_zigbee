@@ -59,7 +59,13 @@ def create_patch(chip: str, base_binary: str, new_binary: str, patch_file_name: 
     if x is None:
         print("Failed to find validation hash in base binary.")
         return
-    patch_file_without_header = "patch_file_temp.bin"
+        
+    # --- FIX: Create a unique temp file name using the base and new binary names ---
+    # This prevents the race condition when multiple CMake targets run at once
+    unique_id = os.path.basename(patch_file_name).replace(".patch", "")
+    patch_file_without_header = f"patch_file_temp_{unique_id}.bin"
+    # -------------------------------------------------------------------------------
+
     try:
         with open(base_binary, 'rb') as b_binary, open(new_binary, 'rb') as n_binary, open(patch_file_without_header, 'wb') as p_binary:
             detools.create_patch(b_binary, n_binary, p_binary, compression='heatshrink') # b_binary is the base binary, n_binary is the new binary, p_binary is the patch file without header
@@ -78,9 +84,6 @@ def create_patch(chip: str, base_binary: str, new_binary: str, patch_file_name: 
     print("Patch created successfully.")
     # Verifying the created patch file
     verify_patch(base_binary, patch_file_name, new_binary)
-
-# This API applies the patch file over the base_binary file and generates the binary.new file. Then it compares 
-# the hash of new_binary and binary.new, if they are the same then the verification is successful, otherwise it fails.
 def verify_patch(base_binary: str, patch_to_verify: str, new_binary: str) -> None:
 
     with open(patch_to_verify, "rb") as original_file:

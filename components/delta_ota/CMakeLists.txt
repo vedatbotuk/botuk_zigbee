@@ -1,4 +1,4 @@
 idf_component_register(SRC_DIRS "src"
                        INCLUDE_DIRS "include"
-                       PRIV_REQUIRES esp_delta_ota app_update
+                       PRIV_REQUIRES app_update espressif__esp_delta_ota
 )
