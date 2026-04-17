@@ -353,10 +353,24 @@ if(SECOND_NUM STREQUAL "1")
             # --------------------------------------------------
             # Generate OTA file for each patch
             # --------------------------------------------------
-            set(OTA_OUTPUT ${MY_DIR}/${FILE_NAME}_from_${BASE_NAME}.ota)
+            
+            # Extract parts from BASE_NAME
+            string(REPLACE "_" ";" BASE_PARTS "${BASE_NAME}")
+            list(GET BASE_PARTS 0 PREFIX_1)
+            list(GET BASE_PARTS 1 PREFIX_2)
+            list(GET BASE_PARTS 2 BASE_VER)
+            list(GET BASE_PARTS 3 SUFFIX)
+
+            # Extract the new version from FILE_NAME
+            string(REPLACE "_" ";" NEW_PARTS "${FILE_NAME}")
+            list(GET NEW_PARTS 2 NEW_VER)
+
+            # Construct output target name
+            set(CUSTOM_OTA_NAME "${PREFIX_1}_${PREFIX_2}_${BASE_VER}_${BASE_VER}${NEW_VER}_${SUFFIX}.ota")
+            set(OTA_OUTPUT ${MY_DIR}/${CUSTOM_OTA_NAME})
 
             add_custom_target(run_post_build_${BASE_NAME} ALL
-                COMMAND ${CMAKE_COMMAND} -E echo "Creating OTA file for ${BASE_NAME}"
+                COMMAND ${CMAKE_COMMAND} -E echo "Creating OTA file for ${BASE_NAME} -> ${CUSTOM_OTA_NAME}"
                 COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/create_ota.py
                     -m ${MANUFACTURER}
                     -i ${MODEL_ID_DECIMAL}

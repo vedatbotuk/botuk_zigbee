@@ -85,33 +85,50 @@ def create_patch(chip: str, base_binary: str, new_binary: str, patch_file_name: 
     # Verifying the created patch file
     verify_patch(base_binary, patch_file_name, new_binary)
 def verify_patch(base_binary: str, patch_to_verify: str, new_binary: str) -> None:
-
+    # 1. Read patch content
     with open(patch_to_verify, "rb") as original_file:
         original_file.seek(HEADER_SIZE)
         patch_content = original_file.read()
 
-    temp_file_name = None
+    # We use None to track if files were created for cleanup
+    temp_patch_name = None
+    temp_output_name = None
+
     try:
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write(patch_content)
-            temp_file.flush()
-            temp_file_name = temp_file.name
+        # 2. Create a unique temporary file for the patch source
+        with tempfile.NamedTemporaryFile(delete=False) as temp_patch:
+            temp_patch.write(patch_content)
+            temp_patch.flush()
+            temp_patch_name = temp_patch.name
 
-        detools.apply_patch_filenames(base_binary, temp_file_name, "binary.new")
+        # 3. Create a unique temporary filename for the reconstructed output
+        # We use delete=False because detools needs to write to the path
+        with tempfile.NamedTemporaryFile(delete=False) as temp_output:
+            temp_output_name = temp_output.name
+
+        # 4. Apply patch using unique names
+        detools.apply_patch_filenames(base_binary, temp_patch_name, temp_output_name)
+
+        # 5. Calculate SHAs using the unique output name
+        sha_of_new_created_binary = calculate_sha256(temp_output_name)
+        sha_of_new_binary = calculate_sha256(new_binary)
+        
+        if sha_of_new_created_binary == sha_of_new_binary:
+            print("Patch file verified successfully")
+        else:
+            # We raise an error so the build fails if verification fails
+            raise ValueError("Failed to verify the patch: SHA256 mismatch")
+
     except Exception as e:
-        print(f"Failed to apply patch: {e}")
+        print(f"Error during patch verification: {e}")
+        # Re-raise to ensure the build stops on failure
+        raise 
     finally:
-        if temp_file_name and os.path.exists(temp_file_name):
-            os.remove(temp_file_name)
-
-    sha_of_new_created_binary = calculate_sha256("binary.new")
-    sha_of_new_binary = calculate_sha256(new_binary)
-    
-    if sha_of_new_created_binary == sha_of_new_binary:
-        print("Patch file verified successfully")
-    else:
-        print("Failed to verify the patch")
-    os.remove("binary.new")
+        # 6. Cleanup both unique files
+        if temp_patch_name and os.path.exists(temp_patch_name):
+            os.remove(temp_patch_name)
+        if temp_output_name and os.path.exists(temp_output_name):
+            os.remove(temp_output_name)
 
 def main() -> None:
     if len(sys.argv) < 2:
