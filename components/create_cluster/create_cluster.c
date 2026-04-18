@@ -34,7 +34,7 @@ static char *model = "\x09" TOSTRING(MODEL_ID_MAP);
 static const char *TAG_CREATE_CLUSTER = "Create_Cluster";
 static RTC_DATA_ATTR uint8_t lastBatteryPercentageRemaining = 0x8C;
 static uint8_t test_attr;
-static const uint8_t hw_version = HW_VERSION;
+static uint8_t hw_version = HW_VERSION;
 
 static void convert_version(const char *version_string, char *firmware_version, size_t buffer_size)
 {

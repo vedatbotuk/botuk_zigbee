@@ -22,6 +22,9 @@
 #include <string.h>
 #include "zlib.h"
 #include "esp_ota_ops.h"
+#include "esp_delta_ota_ops.h"
+
+#define OTA_DELTA_ENABLED 1
 
 static const char *TAG_OTA = "OTA_UPDATE";
 
@@ -114,7 +117,11 @@ static bool CompressedOTA_write(CompressedOTA *ctx, const uint8_t *data, size_t 
 
         if (available > 0)
         {
-            esp_err_t err = esp_ota_write(ctx->handle, buf, available);
+#if OTA_DELTA_ENABLED
+        esp_err_t err = esp_delta_ota_write(ctx->handle, buf, available);
+#else
+        esp_err_t err = esp_ota_write(ctx->handle, buf, available);
+#endif
             if (err != ESP_OK)
             {
                 ESP_LOGE(TAG_OTA, "Error writing OTA: %d", err);
@@ -147,7 +154,12 @@ esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t m
             start_time = esp_timer_get_time();
             s_ota_partition = esp_ota_get_next_update_partition(NULL);
             assert(s_ota_partition);
+#if OTA_DELTA_ENABLED
+            ESP_LOGI(TAG_OTA, "Delta OTA enabled.");
+            ret = esp_delta_ota_begin(s_ota_partition, message.ota_header.image_size, &s_ota_handle);
+#else
             ret = esp_ota_begin(s_ota_partition, 0, &s_ota_handle);
+#endif
             clear_ota_header();
             ota_upgrade_subelement_ = false;
             ota_data_len_ = 0;
@@ -227,7 +239,11 @@ esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_message_t m
                      "-- OTA Information: version: 0x%lx, manufactor code: 0x%x, image type: 0x%x, total size: %ld bytes, cost time: %lld ms,",
                      message.ota_header.file_version, message.ota_header.manufacturer_code, message.ota_header.image_type,
                      message.ota_header.image_size, (esp_timer_get_time() - start_time) / 1000);
+#if OTA_DELTA_ENABLED
+            ret = esp_delta_ota_end(s_ota_handle);
+#else
             ret = esp_ota_end(s_ota_handle);
+#endif
             ESP_RETURN_ON_ERROR(ret, TAG_OTA, "Failed to end OTA partition, status: %s", esp_err_to_name(ret));
             ret = esp_ota_set_boot_partition(s_ota_partition);
             ESP_RETURN_ON_ERROR(ret, TAG_OTA, "Failed to set OTA boot partition, status: %s", esp_err_to_name(ret));

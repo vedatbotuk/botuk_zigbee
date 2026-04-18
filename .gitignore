@@ -1,7 +1,6 @@
 .vscode/
 build
 ota/
-!components/ota/
 managed_components
 dependencies.lock
 sdkconfig
