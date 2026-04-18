@@ -156,6 +156,10 @@ deploy:
     - export VERSION
     - NEW_TAG=${FIRMWARE_VERSION}_${VERSION}
 
+    # Clone required repo
+    - echo "Cloning botuk-zigbee-images repo"
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git
+
     # Run the prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
