@@ -45,53 +45,6 @@ int8_t bus_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, vo
     return (ret == ESP_OK) ? 0 : -1;
 }
 
-void load_bsec_state(void)
-{
-    nvs_handle_t my_handle;
-    uint8_t bsec_state[BSEC_MAX_STATE_BLOB_SIZE];
-    uint8_t work_buffer[BSEC_MAX_STATE_BLOB_SIZE]; // <--- Added this
-    size_t length = BSEC_MAX_STATE_BLOB_SIZE;
-
-    if (nvs_open("storage", NVS_READONLY, &my_handle) == ESP_OK)
-    {
-        esp_err_t res = nvs_get_blob(my_handle, "bsec_state", bsec_state, &length);
-        if (res == ESP_OK && length > 0)
-        {
-            // Updated call with all 4 required arguments
-            bsec_library_return_t status = bsec_set_state(bsec_state, length, work_buffer, BSEC_MAX_STATE_BLOB_SIZE);
-
-            if (status == BSEC_OK)
-            {
-                ESP_LOGI(TAG_AIR_QUALITY, "BSEC state loaded from NVS");
-            }
-            else
-            {
-                ESP_LOGE(TAG_AIR_QUALITY, "BSEC set_state failed: %d", status);
-            }
-        }
-        nvs_close(my_handle);
-    }
-}
-
-void save_bsec_state(void)
-{
-    nvs_handle_t my_handle;
-    uint8_t bsec_state[BSEC_MAX_STATE_BLOB_SIZE];
-    uint8_t work_buffer[BSEC_MAX_STATE_BLOB_SIZE];
-    uint32_t length = 0;
-
-    if (bsec_get_state(0, bsec_state, BSEC_MAX_STATE_BLOB_SIZE, work_buffer, BSEC_MAX_STATE_BLOB_SIZE, &length) == BSEC_OK)
-    {
-        if (nvs_open("storage", NVS_READWRITE, &my_handle) == ESP_OK)
-        {
-            nvs_set_blob(my_handle, "bsec_state", bsec_state, length);
-            nvs_commit(my_handle);
-            nvs_close(my_handle);
-            ESP_LOGI(TAG_AIR_QUALITY, "BSEC state saved to NVS");
-        }
-    }
-}
-
 void bus_delay_us(uint32_t period, void *intf_ptr)
 {
     esp_rom_delay_us(period);
@@ -278,9 +231,6 @@ void bsec_task(void *pvParameters)
     uint8_t n_fields;
 
     ESP_ERROR_CHECK(nvs_flash_init()); // Ensure NVS is ready
-    load_bsec_state();
-
-    uint32_t state_save_counter = 0;
 
     while (1)
     {
@@ -338,15 +288,6 @@ void bsec_task(void *pvParameters)
 
                 for (int i = 0; i < n_outputs; i++)
                 {
-                    if (outputs[i].sensor_id == BSEC_OUTPUT_IAQ && outputs[i].accuracy >= 3)
-                    {
-                        // Save every 10,000 samples (or whatever fits your sample rate)
-                        if (state_save_counter++ > 10000)
-                        {
-                            save_bsec_state();
-                            state_save_counter = 0;
-                        }
-                    }
 
                     switch (outputs[i].sensor_id)
                     {
