@@ -258,6 +258,15 @@ if(SECOND_NUM STREQUAL "1")
     set(IMAGES_DIR ${CMAKE_SOURCE_DIR}/botuk-zigbee-images)
 
     # --------------------------------------------------
+    # Determine environment (dev vs prod) from DEV_PROD
+    # --------------------------------------------------
+    string(TOLOWER "${DEV_PROD}" ENV_SUFFIX)
+    if(NOT ENV_SUFFIX)
+        set(ENV_SUFFIX "dev") # Fallback if DEV_PROD is not set
+        message(WARNING "DEV_PROD is not set! Defaulting to 'dev' binaries.")
+    endif()
+
+    # --------------------------------------------------
     # Get version folders (verX.YYY_*)
     # --------------------------------------------------
     file(GLOB VERSION_DIRS RELATIVE ${IMAGES_DIR} "${IMAGES_DIR}/ver*")
@@ -308,81 +317,81 @@ if(SECOND_NUM STREQUAL "1")
 
     message(STATUS "Using base versions: ${VERSION_DIRS}")
 
+    # 1. Extract the NEW version info once outside the loop
+    string(REPLACE "_" ";" NEW_PARTS "${FILE_NAME}")
+    list(GET NEW_PARTS 2 NEW_VER)
+
     set(NEW_BINARY ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin)
 
-# 1. Extract the NEW version info once outside the loop
-string(REPLACE "_" ";" NEW_PARTS "${FILE_NAME}")
-list(GET NEW_PARTS 2 NEW_VER)
+    # --------------------------------------------------
+    # Loop over base versions
+    # --------------------------------------------------
+    foreach(VERSION_DIR ${VERSION_DIRS})
 
-set(NEW_BINARY ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin)
+        set(FULL_PATH ${IMAGES_DIR}/${VERSION_DIR})
+        
+        # Grab specifically the dev or prod binary based on CMake variable
+        file(GLOB BIN_FILES "${FULL_PATH}/*_${ENV_SUFFIX}.bin")
 
-# --------------------------------------------------
-# Loop over base versions
-# --------------------------------------------------
-foreach(VERSION_DIR ${VERSION_DIRS})
+        list(LENGTH BIN_FILES BIN_COUNT)
+        if(BIN_COUNT GREATER 0)
+            list(GET BIN_FILES 0 BASE_BINARY)
+            get_filename_component(BASE_NAME ${BASE_BINARY} NAME_WE)
 
-    set(FULL_PATH ${IMAGES_DIR}/${VERSION_DIR})
-    file(GLOB BIN_FILES "${FULL_PATH}/*.bin")
+            # 2. Extract BASE version info immediately
+            string(REPLACE "_" ";" BASE_PARTS "${BASE_NAME}")
+            list(GET BASE_PARTS 0 PREFIX_1)
+            list(GET BASE_PARTS 1 PREFIX_2)
+            list(GET BASE_PARTS 2 BASE_VER)
+            list(GET BASE_PARTS 3 SUFFIX)
 
-    list(LENGTH BIN_FILES BIN_COUNT)
-    if(BIN_COUNT GREATER 0)
-        list(GET BIN_FILES 0 BASE_BINARY)
-        get_filename_component(BASE_NAME ${BASE_BINARY} NAME_WE)
+            # 3. ONLY proceed if the versions are different
+            if(NOT BASE_VER STREQUAL NEW_VER)
+                message(STATUS "Creating delta: ${BASE_VER} -> ${NEW_VER} (${ENV_SUFFIX})")
 
-        # 2. Extract BASE version info immediately
-        string(REPLACE "_" ";" BASE_PARTS "${BASE_NAME}")
-        list(GET BASE_PARTS 0 PREFIX_1)
-        list(GET BASE_PARTS 1 PREFIX_2)
-        list(GET BASE_PARTS 2 BASE_VER)
-        list(GET BASE_PARTS 3 SUFFIX)
+                set(PATCH_FILE ${MY_DIR}/patches/${FILE_NAME}_from_${BASE_NAME}.patch)
 
-        # 3. ONLY proceed if the versions are different
-        if(NOT BASE_VER STREQUAL NEW_VER)
-            message(STATUS "Creating delta: ${BASE_VER} -> ${NEW_VER}")
+                add_custom_target(run_delta_ota_patch_gen_${BASE_NAME} ALL
+                    COMMAND ${CMAKE_COMMAND} -E echo "Generating patch from ${BASE_NAME}"
+                    COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/esp_delta_ota_patch_gen.py
+                        create_patch
+                        --chip esp32-h2
+                        --base_binary ${BASE_BINARY}
+                        --new_binary ${NEW_BINARY}
+                        --patch_file_name ${PATCH_FILE}
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    COMMENT "Generating Delta OTA patch from ${BASE_NAME}"
+                )
 
-            set(PATCH_FILE ${MY_DIR}/patches/${FILE_NAME}_from_${BASE_NAME}.patch)
+                if(TARGET gen_project_binary)
+                    add_dependencies(run_delta_ota_patch_gen_${BASE_NAME} gen_project_binary)
+                else()
+                    add_dependencies(run_delta_ota_patch_gen_${BASE_NAME} ${FILE_NAME}.elf)
+                endif()
 
-            add_custom_target(run_delta_ota_patch_gen_${BASE_NAME} ALL
-                COMMAND ${CMAKE_COMMAND} -E echo "Generating patch from ${BASE_NAME}"
-                COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/esp_delta_ota_patch_gen.py
-                    create_patch
-                    --chip esp32-h2
-                    --base_binary ${BASE_BINARY}
-                    --new_binary ${NEW_BINARY}
-                    --patch_file_name ${PATCH_FILE}
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                COMMENT "Generating Delta OTA patch from ${BASE_NAME}"
-            )
+                # Construct output target name
+                set(CUSTOM_OTA_NAME "${PREFIX_1}_${PREFIX_2}_${BASE_VER}_${BASE_VER}${NEW_VER}_${SUFFIX}.ota")
+                set(OTA_OUTPUT ${MY_DIR}/${CUSTOM_OTA_NAME})
 
-            if(TARGET gen_project_binary)
-                add_dependencies(run_delta_ota_patch_gen_${BASE_NAME} gen_project_binary)
+                add_custom_target(run_post_build_${BASE_NAME} ALL
+                    COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/create_ota.py
+                        -m ${MANUFACTURER}
+                        -i ${MODEL_ID_DECIMAL}
+                        -v ${VERSION}
+                        ${PATCH_FILE}
+                        > ${OTA_OUTPUT}                 
+                )
+
+                add_dependencies(run_post_build_${BASE_NAME} run_delta_ota_patch_gen_${BASE_NAME})
             else()
-                add_dependencies(run_delta_ota_patch_gen_${BASE_NAME} ${FILE_NAME}.elf)
+                message(STATUS "Skipping OTA generation: Base version (${BASE_VER}) is the same as New version.")
             endif()
 
-            # Construct output target name
-            set(CUSTOM_OTA_NAME "${PREFIX_1}_${PREFIX_2}_${BASE_VER}_${BASE_VER}${NEW_VER}_${SUFFIX}.ota")
-            set(OTA_OUTPUT ${MY_DIR}/${CUSTOM_OTA_NAME})
-
-            add_custom_target(run_post_build_${BASE_NAME} ALL
-                COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/create_ota.py
-                    -m ${MANUFACTURER}
-                    -i ${MODEL_ID_DECIMAL}
-                    -v ${VERSION}
-                    ${PATCH_FILE}
-                    > ${OTA_OUTPUT}                
-            )
-
-            add_dependencies(run_post_build_${BASE_NAME} run_delta_ota_patch_gen_${BASE_NAME})
         else()
-            message(STATUS "Skipping OTA generation: Base version (${BASE_VER}) is the same as New version.")
+            message(WARNING "No _${ENV_SUFFIX}.bin file found in ${FULL_PATH}. Skipping OTA generation.")
         endif()
 
-    else()
-        message(WARNING "No .bin file found in ${FULL_PATH}. Skipping OTA generation.")
-    endif()
-
-endforeach()
+    endforeach()
 
 else()
     message(STATUS "OTA is not enabled for this model. No OTA-Update file will be created.")
