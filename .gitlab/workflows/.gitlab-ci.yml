@@ -107,6 +107,10 @@ build_prod:
   script:
     - echo "Repository checked out by GitLab Runner"
     - source $HOME/esp/esp-idf/export.sh
+    # Clone required repo
+    - echo "Cloning botuk-zigbee-images repo"
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git
+    # Start prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
   artifacts:
