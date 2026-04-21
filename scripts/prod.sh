@@ -117,29 +117,22 @@ for FILE_PATH in "${OTA_FILES[@]}"; do
     CURRENT_FILE=$((CURRENT_FILE+1))
     FILE_NAME=$(basename "$FILE_PATH")
 
-    # Extract metadata safely from the filename structure: MODEL_HW_VER_BASEVER_prod.ota
-    # Example: 50304_257_12_1012_prod.ota
-    IMG_TYPE=$(echo "$FILE_NAME" | cut -d'_' -f1)
-    HW_VER=$(echo "$FILE_NAME" | cut -d'_' -f2)
-    FILE_VER=$(echo "$FILE_NAME" | cut -d'_' -f3)
+    # Filename: 50304_126_9_to_10_prod.ota
+    # Segments: 1(50304) 2(126) 3(9) 4(to) 5(10) 6(prod)
+    
+    IMG_TYPE_VAL=$(echo "$FILE_NAME" | cut -d'_' -f1)
+    BASE_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f3)  # Extract '9'
+    NEW_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f5)   # Extract '10'
 
-    # Get other metadata values
-    FILE_SIZE=$(stat -c%s "$FILE_PATH") # Get file size
-    SHA512=$(sha512sum "$FILE_PATH" | awk '{print $1}') # Calculate sha512 hash
-
-    # Append JSON object for the current file
+    # Append JSON object
     echo "  {" >> "$BOTUK_INDEX"
-    echo "    \"fileName\": \"$FILE_NAME\"," >> "$BOTUK_INDEX"
-    echo "    \"fileVersion\": $FILE_VER," >> "$BOTUK_INDEX"
-    echo "    \"fileSize\": $FILE_SIZE," >> "$BOTUK_INDEX"
+    echo "    \"imageType\": $IMG_TYPE_VAL," >> "$BOTUK_INDEX"
     echo "    \"manufacturerCode\": $MANUFACTURER," >> "$BOTUK_INDEX"
-    echo "    \"imageType\": $IMG_TYPE," >> "$BOTUK_INDEX"
-    echo "    \"hardwareVersion\": $HW_VER," >> "$BOTUK_INDEX"
-    echo "    \"sha512\": \"$SHA512\"," >> "$BOTUK_INDEX"
-    echo "    \"url\": \"https://github.com/vedatbotuk/zigbee-with-esp32h2/releases/download/${FIRMWARE_VERSION}_${VERSION}/${FILE_NAME}\"," >> "$BOTUK_INDEX"
-    echo "    \"otaHeaderString\": \"\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\"" >> "$BOTUK_INDEX"
+    echo "    \"fileVersion\": $NEW_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"minFileVersion\": $BASE_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"maxFileVersion\": $BASE_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"url\": \"https://github.com/vedatbotuk/zigbee-with-esp32h2/releases/download/${FIRMWARE_VERSION}_${VERSION}/${FILE_NAME}\"" >> "$BOTUK_INDEX"
 
-    # Handle commas between JSON objects (no trailing comma at the very end)
     if [ "$CURRENT_FILE" -eq "$TOTAL_FILES" ]; then
         echo "  }" >> "$BOTUK_INDEX"
     else

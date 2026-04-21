@@ -370,7 +370,7 @@ if(SECOND_NUM STREQUAL "1")
                 endif()
 
                 # Construct output target name
-                set(CUSTOM_OTA_NAME "${PREFIX_1}_${PREFIX_2}_${BASE_VER}_${BASE_VER}${NEW_VER}_${SUFFIX}.ota")
+                set(CUSTOM_OTA_NAME "${PREFIX_1}_${PREFIX_2}_${BASE_VER}_to_${NEW_VER}_${SUFFIX}.ota")
                 set(OTA_OUTPUT ${MY_DIR}/${CUSTOM_OTA_NAME})
 
                 add_custom_target(run_post_build_${BASE_NAME} ALL
