@@ -41,12 +41,6 @@ else
   echo "$BOTUK_INDEX does not exist, no backup needed."
 fi
 
-# Create a new file for the index
-touch "$BOTUK_INDEX"
-# Start the JSON array
-echo "[" >> "$BOTUK_INDEX"
-
-
 # Check if DEV_PROD exists and change it to prod in settings.conf only once
 if grep -q "^DEV_PROD=" "$SETTINGS_FILE"; then
     echo "Changing DEV_PROD to prod in settings.conf"
@@ -76,7 +70,7 @@ echo "Starting the build process..."
 echo "----------------------------------------"
 {
   read  # Skip the header line
-  while IFS=',' read -r MODEL_ID HW_VERSION DEVICE_NAME COMMENT || [ -n "$MODEL_ID" ]; do
+  while IFS=',' read -r MODEL_ID MODEL_ID_DECIMAL HW_VERSION DEVICE_NAME COMMENT || [ -n "$MODEL_ID" ]; do
       # Remove leading/trailing whitespaces
       MODEL_ID=$(echo "$MODEL_ID" | xargs)
       HW_VERSION=$(echo "$HW_VERSION" | xargs)
@@ -100,43 +94,52 @@ echo "----------------------------------------"
       rm -f sdkconfig sdkconfig.old sdkconfig.defaults dependencies.lock || true
       echo "Clean up completed."
 
-      # Add the data to OTA Index file
-      echo "Adding data to OTA Index file..."
-
-      # Convert MODEL_ID to decimal and store it in a variable
-      MODEL_ID_DECIMAL=$((2#$MODEL_ID))
-
-      # Format MODEL_ID_DECIMAL to be 5 digits long, with leading zeros if necessary
-      MODEL_ID_DECIMAL_FIVE=$(printf "%05d" "$MODEL_ID_DECIMAL")
-
-      # Create FILE_NAME in the desired format
-      FILE_NAME="${MODEL_ID_DECIMAL_FIVE}_${HW_VERSION}_${VERSION}_prod.ota"
-      FILE_PATH="ota/$FILE_NAME"
-
-      # Get other metadata values
-      FILE_SIZE=$(stat -c%s "$FILE_PATH") # Get file size
-      SHA512=$(sha512sum "$FILE_PATH" | awk '{print $1}') # Calculate sha512 hash
-
-      # Create a JSON object for the current iteration
-      echo "  {" >> "$BOTUK_INDEX"
-      echo "    \"fileName\": \"$FILE_NAME\"," >> "$BOTUK_INDEX"
-      echo "    \"fileVersion\": $VERSION," >> "$BOTUK_INDEX"
-      echo "    \"fileSize\": $FILE_SIZE," >> "$BOTUK_INDEX"
-      echo "    \"manufacturerCode\": $MANUFACTURER," >> "$BOTUK_INDEX"
-      echo "    \"imageType\": $MODEL_ID_DECIMAL," >> "$BOTUK_INDEX"
-      echo "    \"hardwareVersion\": $HW_VERSION," >> "$BOTUK_INDEX"
-      echo "    \"sha512\": \"$SHA512\"," >> "$BOTUK_INDEX"
-      echo "    \"url\": \"https://github.com/vedatbotuk/zigbee-with-esp32h2/releases/download/${FIRMWARE_VERSION}_${VERSION}/${FILE_NAME}\"," >> "$BOTUK_INDEX"
-      echo "    \"otaHeaderString\": \"\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\"" >> "$BOTUK_INDEX"
-      echo "  }," >> "$BOTUK_INDEX"
-      # Indicate completion of the build
       echo "Build completed for MODEL_ID: $MODEL_ID"
       echo "----------------------------------------"
   done
 } < "$CSV_FILE"
 
-# Remove the last comma added after the last JSON object
-sed -i '$ s/,$//' "$BOTUK_INDEX"
+echo "Building completed. Generating OTA Index file..."
+echo "----------------------------------------"
+
+# Phase 2: Scan the ota/ directory and generate index.json
+# Create a new file for the index
+touch "$BOTUK_INDEX"
+echo "[" > "$BOTUK_INDEX"
+
+# Enable nullglob so the loop behaves correctly if no .ota files exist
+shopt -s nullglob
+OTA_FILES=(ota/*.ota)
+TOTAL_FILES=${#OTA_FILES[@]}
+CURRENT_FILE=0
+
+for FILE_PATH in "${OTA_FILES[@]}"; do
+    CURRENT_FILE=$((CURRENT_FILE+1))
+    FILE_NAME=$(basename "$FILE_PATH")
+
+    # Filename: 50304_126_9_to_10_prod.ota
+    # Segments: 1(50304) 2(126) 3(9) 4(to) 5(10) 6(prod)
+    
+    IMG_TYPE_VAL=$(echo "$FILE_NAME" | cut -d'_' -f1)
+    BASE_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f3)  # Extract '9'
+    NEW_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f5)   # Extract '10'
+
+    # Append JSON object
+    echo "  {" >> "$BOTUK_INDEX"
+    echo "    \"imageType\": $IMG_TYPE_VAL," >> "$BOTUK_INDEX"
+    echo "    \"manufacturerCode\": $MANUFACTURER," >> "$BOTUK_INDEX"
+    echo "    \"fileVersion\": $NEW_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"minFileVersion\": $BASE_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"maxFileVersion\": $BASE_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"url\": \"https://github.com/vedatbotuk/zigbee-with-esp32h2/releases/download/${FIRMWARE_VERSION}_${VERSION}/${FILE_NAME}\"" >> "$BOTUK_INDEX"
+
+    if [ "$CURRENT_FILE" -eq "$TOTAL_FILES" ]; then
+        echo "  }" >> "$BOTUK_INDEX"
+    else
+        echo "  }," >> "$BOTUK_INDEX"
+    fi
+done
+
 echo "]" >> "$BOTUK_INDEX"
 echo "JSON file created as $BOTUK_INDEX"
 
@@ -144,7 +147,7 @@ echo "JSON file created as $BOTUK_INDEX"
 mv "$BACKUP_FILE" "$SETTINGS_FILE"
 echo ""
 echo "settings.conf has been reset to its original state."
-echo "Finished building all devices in the CSV file."
+echo "Finished building all devices in the CSV file and mapping all OTA updates."
 echo "OTA Files are in ./ota"
 echo "----------------------------------------"
 echo "OTA Build Script for Production Devices completed."
