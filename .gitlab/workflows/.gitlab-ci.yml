@@ -284,8 +284,8 @@ cleanup: &cleanup
     
     # Check if the directory actually exists before adding
     - |
-      if [ -d "ver${NEW_TAG}" ]; then
-        git add "ver${NEW_TAG}/"
+      if [ -d "${NEW_TAG}" ]; then
+        git add "${NEW_TAG}/"
       else
         echo "Error: Directory ver${NEW_TAG} not found in $(pwd)"
         ls -d */
