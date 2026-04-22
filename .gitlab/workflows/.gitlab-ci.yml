@@ -117,6 +117,8 @@ build_prod:
     # Start prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
+    - ls -l ota
+    - pwd
     
     ### PUSHING (Calling the function)
     - !reference [.push_binaries_template, script]
