@@ -82,11 +82,10 @@ check_parameter:
 # ##########################################
 build_docker_image:
   stage: prepare_image
-  image: docker:24.0.5          # Standard docker client image
+  image: docker:24.0.5
   services:
-    - docker:24.0.5-dind        # Docker-in-Docker service (required for shared runners)
+    - docker:24.0.5-dind
   variables:
-    # Use TLS for Docker-in-Docker
     DOCKER_TLS_CERTDIR: "/certs"
   rules:
     - changes:
