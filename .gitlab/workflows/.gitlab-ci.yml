@@ -117,7 +117,7 @@ build_prod:
     - ./scripts/prod.sh
     
     ### PUSHING (Calling the function)
-    - !reference [.push_binaries_template, script
+    - !reference [.push_binaries_template, script]
 
   artifacts:
     paths:
