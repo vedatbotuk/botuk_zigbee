@@ -271,13 +271,28 @@ cleanup: &cleanup
 .push_binaries_template:
   script:
     - echo "Pushing new binaries to botuk-zigbee-images..."
+    # Re-calculate NEW_TAG inside the template to ensure it isn't empty
+    - source settings.conf
+    - NEW_TAG=${FIRMWARE_VERSION}_${VERSION}
+    - echo "Targeting directory ver${NEW_TAG}"
+    
     - cd botuk-zigbee-images
-    # Setup Git identity for the CI Bot
+    
+    # Setup Git identity
     - git config user.email "ci-bot@botuk.de"
     - git config user.name "GitLab CI Bot"
-    # Stage the newly created directory and binaries
-    - git add ver${NEW_TAG}/
-    # Check if there are changes to commit
+    
+    # Check if the directory actually exists before adding
+    - |
+      if [ -d "ver${NEW_TAG}" ]; then
+        git add "ver${NEW_TAG}/"
+      else
+        echo "Error: Directory ver${NEW_TAG} not found in $(pwd)"
+        ls -d */
+        exit 1
+      fi
+    
+    # Commit and Push
     - |
       if git diff-index --quiet HEAD; then
         echo "No new binaries generated to commit."
@@ -285,4 +300,4 @@ cleanup: &cleanup
         git commit -m "ci: add production binaries for ver${NEW_TAG}"
         git push https://oauth2:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
       fi
-    - cd .. # Return to the original working directory
+    - cd ..
