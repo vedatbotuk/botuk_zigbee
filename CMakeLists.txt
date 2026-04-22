@@ -398,3 +398,18 @@ else()
 endif()
 #### Create OTA-Update File ####
 #### ###################### ####
+
+#### ########################################## ####
+#### Copy Binary to botuk-zigbee-images Repo    ####
+
+# Define the destination directory based on your version variables
+set(IMAGE_DEST_DIR "${CMAKE_SOURCE_DIR}/botuk-zigbee-images/${FIRMWARE_VERSION}_${VERSION}")
+
+# Add a post-build command to create the directory and copy the binary
+add_custom_command(
+    TARGET gen_project_binary POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${IMAGE_DEST_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin ${IMAGE_DEST_DIR}/${FILE_NAME}.bin
+    COMMENT "Copying ${FILE_NAME}.bin to ${IMAGE_DEST_DIR}"
+)
+#### ########################################## ####

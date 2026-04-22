@@ -107,12 +107,18 @@ build_prod:
   script:
     - echo "Repository checked out by GitLab Runner"
     - source $HOME/esp/esp-idf/export.sh
+
     # Clone required repo
     - echo "Cloning botuk-zigbee-images repo"
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git
+    
     # Start prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
+    
+    ### PUSHING (Calling the function)
+    - !reference [.push_binaries_template, script
+
   artifacts:
     paths:
       - ./ota/*
@@ -167,6 +173,10 @@ deploy:
     # Run the prod script
     - chmod +x ./scripts/prod.sh
     - ./scripts/prod.sh
+
+    ### PUSHING (Calling the function)
+    - !reference [.push_binaries_template, script]
+
     # DEBUG LINES
     # - mkdir ota
     # - touch ota/botuk_index1.json
@@ -255,3 +265,24 @@ cleanup: &cleanup
     - rm -rf ./*
   only:
     - merge_requests
+
+# Pushing Script
+# ##############
+.push_binaries_template:
+  script:
+    - echo "Pushing new binaries to botuk-zigbee-images..."
+    - cd botuk-zigbee-images
+    # Setup Git identity for the CI Bot
+    - git config user.email "ci-bot@botuk.de"
+    - git config user.name "GitLab CI Bot"
+    # Stage the newly created directory and binaries
+    - git add ver${NEW_TAG}/
+    # Check if there are changes to commit
+    - |
+      if git diff-index --quiet HEAD; then
+        echo "No new binaries generated to commit."
+      else
+        git commit -m "ci: add production binaries for ver${NEW_TAG}"
+        git push https://oauth2:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
+      fi
+    - cd .. # Return to the original working directory
