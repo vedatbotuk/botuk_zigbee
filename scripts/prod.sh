@@ -87,7 +87,7 @@ echo "----------------------------------------"
       # Set target for ESP32H2
       idf.py set-target esp32h2 > /dev/null 2>&1
       # Build
-      idf.py build > /dev/null 2>&1
+      idf.py build
 
       # Clean up
       echo "Removing build directory and related files..."
