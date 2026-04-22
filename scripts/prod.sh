@@ -125,6 +125,10 @@ for FILE_PATH in "${OTA_FILES[@]}"; do
     BASE_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f3)  # Extract '9'
     NEW_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f5)   # Extract '10'
 
+    # Get other metadata values
+    FILE_SIZE=$(stat -c%s "$FILE_PATH") # Get file size
+    SHA512=$(sha512sum "$FILE_PATH" | awk '{print $1}') # Calculate sha512 hash
+
     # Append JSON object
     echo "  {" >> "$BOTUK_INDEX"
     echo "    \"fileName\": \"$FILE_NAME\"," >> "$BOTUK_INDEX"
