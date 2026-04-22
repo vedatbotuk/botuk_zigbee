@@ -77,6 +77,7 @@ echo "----------------------------------------"
 
       # Update the settings.conf file with the new MODEL_ID
       echo "Updating settings.conf with MODEL_ID: $MODEL_ID"
+      echo "Updating settings.conf with MODEL_ID_DECIMAL: $MODEL_ID_DECIMAL"
       sed -i "s/^MODEL_ID=.*/MODEL_ID=$MODEL_ID/" "$SETTINGS_FILE"
 
       # Update the settings.conf file with the new HW_VERSION
@@ -126,12 +127,17 @@ for FILE_PATH in "${OTA_FILES[@]}"; do
 
     # Append JSON object
     echo "  {" >> "$BOTUK_INDEX"
-    echo "    \"imageType\": $IMG_TYPE_VAL," >> "$BOTUK_INDEX"
-    echo "    \"manufacturerCode\": $MANUFACTURER," >> "$BOTUK_INDEX"
+    echo "    \"fileName\": \"$FILE_NAME\"," >> "$BOTUK_INDEX"
     echo "    \"fileVersion\": $NEW_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"fileSize\": $FILE_SIZE," >> "$BOTUK_INDEX"
+    echo "    \"manufacturerCode\": $MANUFACTURER," >> "$BOTUK_INDEX"
+    echo "    \"imageType\": $IMG_TYPE_VAL," >> "$BOTUK_INDEX"
+    echo "    \"hardwareVersion\": $HW_VERSION," >> "$BOTUK_INDEX"
     echo "    \"minFileVersion\": $BASE_VER_VAL," >> "$BOTUK_INDEX"
     echo "    \"maxFileVersion\": $BASE_VER_VAL," >> "$BOTUK_INDEX"
+    echo "    \"sha512\": \"$SHA512\"," >> "$BOTUK_INDEX"
     echo "    \"url\": \"https://github.com/vedatbotuk/zigbee-with-esp32h2/releases/download/${FIRMWARE_VERSION}_${VERSION}/${FILE_NAME}\"" >> "$BOTUK_INDEX"
+    echo "    \"otaHeaderString\": \"\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\"" >> "$BOTUK_INDEX"
 
     if [ "$CURRENT_FILE" -eq "$TOTAL_FILES" ]; then
         echo "  }" >> "$BOTUK_INDEX"
