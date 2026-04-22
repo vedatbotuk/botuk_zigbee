@@ -270,34 +270,34 @@ cleanup: &cleanup
 # ##############
 .push_binaries_template:
   script:
-    - echo "Pushing new binaries to botuk-zigbee-images..."
-    # Re-calculate NEW_TAG inside the template to ensure it isn't empty
     - source settings.conf
-    - NEW_TAG=${FIRMWARE_VERSION}_${VERSION}
-    - echo "Targeting directory ver${NEW_TAG}"
+    # Logic to prevent "verver": 
+    # If FIRMWARE_VERSION is "ver0.106", NEW_DIR becomes "ver0.106_11"
+    # If FIRMWARE_VERSION is "0.106", NEW_DIR becomes "ver0.106_11"
+    - |
+      if [[ $FIRMWARE_VERSION == ver* ]]; then
+        NEW_DIR="${FIRMWARE_VERSION}_${VERSION}"
+      else
+        NEW_DIR="ver${FIRMWARE_VERSION}_${VERSION}"
+      fi
     
+    - echo "Targeting directory: $NEW_DIR"
     - cd botuk-zigbee-images
     
-    # Setup Git identity
+    # Configure Git identity
     - git config user.email "ci-bot@botuk.de"
     - git config user.name "GitLab CI Bot"
     
-    # Check if the directory actually exists before adding
-    - |
-      if [ -d "${NEW_TAG}" ]; then
-        git add "${NEW_TAG}/"
-      else
-        echo "Error: Directory ver${NEW_TAG} not found in $(pwd)"
-        ls -d */
-        exit 1
-      fi
+    # Stage the directory created by CMake
+    - git add "${NEW_DIR}/"
     
-    # Commit and Push
+    # Commit and Push using the Project Access Token
     - |
       if git diff-index --quiet HEAD; then
-        echo "No new binaries generated to commit."
+        echo "No new binaries found to commit."
       else
-        git commit -m "ci: add production binaries for ver${NEW_TAG}"
+        git commit -m "ci: add production binaries for $NEW_DIR"
+        # Using the IMAGE_REPO_PUSH_TOKEN variable we created in Step 1
         git push https://oauth2:${IMAGE_REPO_PUSH_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
       fi
     - cd ..
