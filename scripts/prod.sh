@@ -87,7 +87,7 @@ echo "----------------------------------------"
       # Set target for ESP32H2
       idf.py set-target esp32h2 > /dev/null 2>&1
       # Build
-      idf.py build
+      idf.py build > /dev/null 2>&1
 
       # Clean up
       echo "Removing build directory and related files..."
@@ -122,6 +122,7 @@ for FILE_PATH in "${OTA_FILES[@]}"; do
     # Segments: 1(50304) 2(126) 3(9) 4(to) 5(10) 6(prod)
     
     IMG_TYPE_VAL=$(echo "$FILE_NAME" | cut -d'_' -f1)
+    HW_VERSION=$(echo "$FILE_NAME" | cut -d'_' -f2)
     BASE_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f3)  # Extract '9'
     NEW_VER_VAL=$(echo "$FILE_NAME" | cut -d'_' -f5)   # Extract '10'
 
