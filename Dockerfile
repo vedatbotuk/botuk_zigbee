@@ -1,5 +1,5 @@
 # Base Image
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 # Set HOME environment variable
 ENV HOME=/root
@@ -7,11 +7,12 @@ ENV HOME=/root
 # Define ARGs for maintainability
 ARG ESP_IDF_VERSION
 ENV ESP_IDF_VERSION=${ESP_IDF_VERSION}
-ARG ESP_IDF_ZIP_URL=https://dl.espressif.com/github_assets/espressif/esp-idf/releases/download/${ESP_IDF_VERSION}/esp-idf-v${ESP_IDF_VERSION}.zip
+ARG ESP_IDF_ZIP_URL=https://github.com/espressif/esp-idf/releases/download/${ESP_IDF_VERSION}/esp-idf-${ESP_IDF_VERSION}.zip
 ARG RELEASE_CLI_URL=https://gitlab.com/api/v4/projects/gitlab-org%2Frelease-cli/packages/generic/release-cli/latest/release-cli-linux-amd64
 
 # Install required packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential python3-dev \
     wget unzip flex bison gperf python3 python3-pip python3-venv \
     cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 \
     jq ca-certificates git curl && \
@@ -21,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p ${HOME}/esp && \
     wget -O ${HOME}/esp/esp-idf.zip ${ESP_IDF_ZIP_URL} && \
     unzip ${HOME}/esp/esp-idf.zip -d ${HOME}/esp && \
-    mv ${HOME}/esp/esp-idf-v${ESP_IDF_VERSION} ${HOME}/esp/esp-idf && \
+    mv ${HOME}/esp/esp-idf-${ESP_IDF_VERSION} ${HOME}/esp/esp-idf && \
     rm ${HOME}/esp/esp-idf.zip
 
 # Install ESP-IDF dependencies
@@ -33,7 +34,7 @@ ENV IDF_PATH_FORCE=1
 ENV PATH=${IDF_PATH}/tools:${PATH}
 
 # Install Zigpy with ESP-IDF's Python environment
-RUN . ${IDF_PATH}/export.sh && pip install zigpy detools>=0.49.0
+RUN . ${IDF_PATH}/export.sh && pip install zigpy>=0.84.0 detools>=0.49.0
 
 # Copy and install self-signed certificate
 COPY ./botuk.crt /usr/local/share/ca-certificates/
