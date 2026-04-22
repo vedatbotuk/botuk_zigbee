@@ -298,6 +298,6 @@ cleanup: &cleanup
         echo "No new binaries generated to commit."
       else
         git commit -m "ci: add production binaries for ver${NEW_TAG}"
-        git push https://oauth2:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
+        git push https://oauth2:${IMAGE_REPO_PUSH_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
       fi
     - cd ..
