@@ -271,33 +271,21 @@ cleanup: &cleanup
 .push_binaries_template:
   script:
     - source settings.conf
-    # Logic to prevent "verver": 
-    # If FIRMWARE_VERSION is "ver0.106", NEW_DIR becomes "ver0.106_11"
-    # If FIRMWARE_VERSION is "0.106", NEW_DIR becomes "ver0.106_11"
     - |
       if [[ $FIRMWARE_VERSION == ver* ]]; then
         NEW_DIR="${FIRMWARE_VERSION}_${VERSION}"
       else
         NEW_DIR="ver${FIRMWARE_VERSION}_${VERSION}"
       fi
-    
-    - echo "Targeting directory: $NEW_DIR"
     - cd botuk-zigbee-images
-    
-    # Configure Git identity
     - git config user.email "ci-bot@botuk.de"
     - git config user.name "GitLab CI Bot"
-    
-    # Stage the directory created by CMake
     - git add "${NEW_DIR}/"
-    
-    # Commit and Push using the Project Access Token
     - |
       if git diff-index --quiet HEAD; then
-        echo "No new binaries found to commit."
+        echo "No changes to commit."
       else
         git commit -m "ci: add production binaries for $NEW_DIR"
-        # Using the IMAGE_REPO_PUSH_TOKEN variable we created in Step 1
         git push https://oauth2:${IMAGE_REPO_PUSH_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
       fi
     - cd ..
