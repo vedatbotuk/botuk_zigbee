@@ -96,7 +96,7 @@ build_docker_image:
     # Install git to clone the certificates repo
     - apk add --no-cache git
     # Clone and prepare the certificate
-    - git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-certificates.git"
+    - git -c http.sslVerify=false clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-certificates.git"
     - cp botuk-certificates/botuk.de/botuk.ca ./botuk.crt
     # Login using the stdin method (safest for the parser)
     - echo "$REGISTRY_WRITE_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
