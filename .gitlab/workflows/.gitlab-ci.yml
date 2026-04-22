@@ -93,23 +93,16 @@ build_docker_image:
         - esp_idf_version.txt
       when: always
   script:
-    # 1. Install git (docker image is Alpine-based)
+    # Install git to clone the certificates repo
     - apk add --no-cache git
-
-    # 2. Clone the certificates repo
-    # We use the CI_JOB_TOKEN for authentication
-    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-certificates.git
-
-    # 3. Copy and rename the certificate to match what your Dockerfile expects
+    # Clone and prepare the certificate
+    - git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-certificates.git"
     - cp botuk-certificates/botuk.de/botuk.ca ./botuk.crt
-    - echo "Certificate prepared: $(ls -l botuk.crt)"
-
-    # 4. Login and Build
-    - echo "$REGISTRY_WRITE_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-    - echo "Building Docker image..."
-    - docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
-    - echo "Pushing Docker image..."
-    - docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
+    # Login using the stdin method (safest for the parser)
+    - echo "$REGISTRY_WRITE_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    # Build and Push
+    - docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker push "$CI_REGISTRY_IMAGE:latest"
 
 # Building dev before merge to dev branch
 # This comes from features branch
