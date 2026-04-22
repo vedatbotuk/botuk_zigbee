@@ -89,13 +89,23 @@ build_docker_image:
     # Use TLS for Docker-in-Docker
     DOCKER_TLS_CERTDIR: "/certs"
   rules:
-    # Only run this job if the Dockerfile or version file changes
     - changes:
         - Dockerfile
         - esp_idf_version.txt
       when: always
   script:
-    - echo "Logging into GitLab Container Registry..."
+    # 1. Install git (docker image is Alpine-based)
+    - apk add --no-cache git
+
+    # 2. Clone the certificates repo
+    # We use the CI_JOB_TOKEN for authentication
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-certificates.git
+
+    # 3. Copy and rename the certificate to match what your Dockerfile expects
+    - cp botuk-certificates/botuk.de/botuk.ca ./botuk.crt
+    - echo "Certificate prepared: $(ls -l botuk.crt)"
+
+    # 4. Login and Build
     - echo "$REGISTRY_WRITE_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - echo "Building Docker image..."
     - docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
