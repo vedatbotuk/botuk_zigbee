@@ -111,6 +111,8 @@ build_prod:
     # Clone required repo
     - echo "Cloning botuk-zigbee-images repo"
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git
+    - ls -l botuk-zigbee-images
+    - pwd
     
     # Start prod script
     - chmod +x ./scripts/prod.sh
