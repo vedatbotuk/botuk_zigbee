@@ -1,4 +1,5 @@
 stages:
+  - prepare_image
   - validate
   - build
   - prod
@@ -11,7 +12,9 @@ stages:
 ############################################
 check_pr_description:
   stage: validate
-  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
   when: always # Ensure this job is never skipped
   only:
     - merge_requests
@@ -73,16 +76,40 @@ restrict_pr_to_main:
 check_parameter:
   extends: .check_parameter
 
-# TODO build docker
 # esp-idf container can build and push
 # This is necassary if we change the esp-idf version.
+# Build and Push Docker image when necessary
+# ##########################################
+build_docker_image:
+  stage: prepare_image
+  image: docker:24.0.5          # Standard docker client image
+  services:
+    - docker:24.0.5-dind        # Docker-in-Docker service (required for shared runners)
+  variables:
+    # Use TLS for Docker-in-Docker
+    DOCKER_TLS_CERTDIR: "/certs"
+  rules:
+    # Only run this job if the Dockerfile or version file changes
+    - changes:
+        - Dockerfile
+        - esp_idf_version.txt
+      when: always
+  script:
+    - echo "Logging into GitLab Container Registry..."
+    - echo "$REGISTRY_WRITE_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - echo "Building Docker image..."
+    - docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
+    - echo "Pushing Docker image..."
+    - docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
 
 # Building dev before merge to dev branch
 # This comes from features branch
 # ########################################
 build_dev:
   stage: build
-  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
   rules:
   - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
     when: always
@@ -100,7 +127,9 @@ build_dev:
 # ###########################################
 build_prod:
   stage: prod
-  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
+  image: 
+      name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+      pull_policy: always
   rules:
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
       when: always
@@ -138,7 +167,9 @@ build_prod:
 # ######################################
 prepare_job:
   stage: prepare
-  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
   rules: *deploy_rule
   script:
     # Load settings from settings.conf
@@ -157,7 +188,9 @@ prepare_job:
 
 deploy:
   stage: deploy
-  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
   needs:
     - job: prepare_job
       artifacts: true
@@ -264,7 +297,9 @@ deploy:
 # #######
 cleanup: &cleanup
   stage: cleanup
-  image: registry.gitlab.botuk.de/vedat/botuk_zigbee
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
   script:
     - rm -rf ./*
   only:
