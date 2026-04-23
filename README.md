@@ -171,6 +171,7 @@ v5.5.1
 
 After changing version, should be rebuild docker container.
 ## Rebuild the Docker Image
+This is also included in Gitlab CI and trigerred for dev and main branches.
 ```bash
 docker build \
   --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) \

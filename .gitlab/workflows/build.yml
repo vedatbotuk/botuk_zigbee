@@ -1,0 +1,58 @@
+build_docker_image:
+  stage: prepare_image
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  rules:
+    - changes:
+        - Dockerfile
+        - esp_idf_version.txt
+      when: always
+  script:
+    - apk add --no-cache git
+    - git -c http.sslVerify=false clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-certificates.git"
+    - cp botuk-certificates/botuk.de/botuk.ca ./botuk.crt
+    - echo "$REGISTRY_WRITE_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+
+build_dev:
+  stage: build
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
+  rules:
+  - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+    when: always
+  script:
+    - echo "Repository already checked out by GitLab Runner."
+    - source $HOME/esp/esp-idf/export.sh
+    - idf.py set-target esp32h2
+    - idf.py build
+  artifacts:
+    paths:
+      - ./ota/*
+    expire_in: 1 hour
+
+build_prod:
+  stage: prod
+  image: 
+      name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+      pull_policy: always
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+  script:
+    - echo "Repository checked out by GitLab Runner"
+    - source $HOME/esp/esp-idf/export.sh
+    - echo "Cloning botuk-zigbee-images repo"
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git
+    - chmod +x ./scripts/prod.sh
+    - ./scripts/prod.sh
+    - !reference [.push_binaries_template, script]
+  artifacts:
+    paths:
+      - ./ota/*
+    expire_in: 1 hour
