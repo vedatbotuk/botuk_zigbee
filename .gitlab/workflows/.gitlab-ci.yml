@@ -26,11 +26,11 @@ include:
       expected_value: "0"
 
 # 2. Include Local Sub-Pipelines
-  - local: 'templates.yml'
-  - local: 'validate.yml'
-  - local: 'build.yml'
-  - local: 'deploy.yml'
-  - local: 'cleanup.yml'
+  - local: './ci/templates.yml'
+  - local: './ci/validate.yml'
+  - local: './ci/build.yml'
+  - local: './ci/deploy.yml'
+  - local: './ci/cleanup.yml'
 
 # 3. Component Extends
 sync_wiki:
