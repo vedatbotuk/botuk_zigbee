@@ -20,23 +20,27 @@ const NS = 'zhc:botuk';
  */
 const addCustomClusters = () => [
     deviceAddCustomCluster('botukIaqMeas', {
+        name: 'botukIaqMeas',
         ID: 0xFC04,
-        attributes: { measuredValue: { ID: 0x0000, type: 0x21 } },
+        attributes: { measuredValue: { name: 'measuredValue', ID: 0x0000, type: 0x21 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('botukVocMeas', {
+        name: 'botukVocMeas',
         ID: 0xFC05,
-        attributes: { measuredValue: { ID: 0x0000, type: 0x39 } },
+        attributes: { measuredValue: { name: 'measuredValue', ID: 0x0000, type: 0x39 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('botukGasMeas', {
+        name: 'botukGasMeas',
         ID: 0xFC06,
-        attributes: { measuredValue: { ID: 0x0000, type: 0x39 } },
+        attributes: { measuredValue: { name: 'measuredValue', ID: 0x0000, type: 0x39 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('botukIaqAccuracy', {
+        name: 'botukIaqAccuracy',
         ID: 0xFC0B,
-        attributes: { measuredValue: { ID: 0x0000, type: 0x20 } },
+        attributes: { measuredValue: { name: 'measuredValue', ID: 0x0000, type: 0x20 } },
         commands: {}, commandsResponse: {},
     })
 ];
@@ -132,79 +136,113 @@ const definition = {
     configure: async (device, coordinatorEndpoint) => {
         const endpoint = device.getEndpoint(10);
 
-        await reporting.bind(endpoint, coordinatorEndpoint, [
-            'msTemperatureMeasurement',
-            'msRelativeHumidity',
-            'msCO2',
-            'msPressureMeasurement',
-            'botukIaqMeas',
-            'botukVocMeas',
-            'botukGasMeas',
-            'botukIaqAccuracy'
-        ]);
+        try {
+            await endpoint.bind('msTemperatureMeasurement', coordinatorEndpoint);
+            await endpoint.configureReporting('msTemperatureMeasurement', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 10,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for msTemperatureMeasurement: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('msTemperatureMeasurement', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 10,
-        }]);
+        try {
+            await endpoint.bind('msRelativeHumidity', coordinatorEndpoint);
+            await endpoint.configureReporting('msRelativeHumidity', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 50,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for msRelativeHumidity: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('msRelativeHumidity', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 50,
-        }]);
+        try {
+            await endpoint.bind('msCO2', coordinatorEndpoint);
+            await endpoint.configureReporting('msCO2', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 10,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for msCO2: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('msCO2', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 10,
-        }]);
+        try {
+            await endpoint.bind('msPressureMeasurement', coordinatorEndpoint);
+            await endpoint.configureReporting('msPressureMeasurement', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 1,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for msPressureMeasurement: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('msPressureMeasurement', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 1,
-        }]);
+        try {
+            await endpoint.bind('msPressureMeasurement', coordinatorEndpoint);
+            await endpoint.configureReporting('msPressureMeasurement', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 1,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for msPressureMeasurement: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('msPressureMeasurement', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 1,
-        }]);
+        try {
+            await endpoint.bind('botukIaqMeas', coordinatorEndpoint);
+            await endpoint.configureReporting('botukIaqMeas', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 1,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for botukIaqMeas: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('botukIaqMeas', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 1,
-        }]);
+        try {
+            await endpoint.bind('botukVocMeas', coordinatorEndpoint);
+            await endpoint.configureReporting('botukVocMeas', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 0.1,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for botukVocMeas: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('botukVocMeas', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 0.1,
-        }]);
+        try {
+            await endpoint.bind('botukGasMeas', coordinatorEndpoint);
+            await endpoint.configureReporting('botukGasMeas', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 100,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for botukGasMeas: ${error}`, NS);
+        }
 
-        await endpoint.configureReporting('botukGasMeas', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 100,
-        }]);
-
-        await endpoint.configureReporting('botukIaqAccuracy', [{
-            attribute: 'measuredValue',
-            minimumReportInterval: 60,
-            maximumReportInterval: 3600,
-            reportableChange: 0,
-        }]);
+        try {
+            await endpoint.bind('botukIaqAccuracy', coordinatorEndpoint);
+            await endpoint.configureReporting('botukIaqAccuracy', [{
+                attribute: 'measuredValue',
+                minimumReportInterval: 60,
+                maximumReportInterval: 3600,
+                reportableChange: 0,
+            }]);
+        } catch (error) {
+            logger.warning(`Failed to configure reporting for botukIaqAccuracy: ${error}`, NS);
+        }
     },
 
     exposes: [

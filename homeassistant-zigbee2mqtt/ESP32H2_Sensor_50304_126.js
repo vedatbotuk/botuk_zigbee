@@ -13,8 +13,9 @@ const NS = 'zhc:botuk';
  */
 const addCustomClusters = () => [
     deviceAddCustomCluster('redLight', {
+        name: 'redLight',
         ID: 0xFC07,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        attributes: { onOff: {name: 'onOff', ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
     })
 ];
@@ -92,20 +93,18 @@ const definition = {
     // TODO: This we dont nedd
     configure: async (device, coordinatorEndpoint) => {
         const endpoint = device.getEndpoint(10);
-        const clusters = [0xFC07];
-        for (const cluster of clusters) {
-            try {
-                await endpoint.bind(cluster, coordinatorEndpoint);
-                await endpoint.configureReporting(cluster, [{
-                    attribute: 'onOff',
-                    minimumReportInterval: 1,
-                    maximumReportInterval: 3600,
-                    reportableChange: 0
-                }]);
-                logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
-            } catch (error) {
-                logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
-            }
+        
+        try {
+            await endpoint.bind('redLight', coordinatorEndpoint);
+            await endpoint.configureReporting('redLight', [{
+                attribute: 'onOff',
+                minimumReportInterval: 1,
+                maximumReportInterval: 3600,
+                reportableChange: 0
+            }]);
+            logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
+        } catch (error) {
+            logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
         }
     },
 
