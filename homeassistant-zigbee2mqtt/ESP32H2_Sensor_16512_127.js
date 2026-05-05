@@ -15,23 +15,27 @@ const NS = 'zhc:botuk';
  */
 const addCustomClusters = () => [
     deviceAddCustomCluster('redLight', {
+        name: 'redLight',
         ID: 0xFC07,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        attributes: { onOff: { name: 'onOff', ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('yellowLight', {
+        name: 'yellowLight',
         ID: 0xFC08,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        attributes: { onOff: { name: 'onOff', ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('greenLight', {
+        name: 'greenLight',
         ID: 0xFC09,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        attributes: { onOff: { name: 'onOff', ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
     }),
     deviceAddCustomCluster('whiteLight', {
+        name: 'whiteLight',
         ID: 0xFC0A,
-        attributes: { onOff: { ID: 0x0000, type: 0x10 } },
+        attributes: { onOff: { name: 'onOff', ID: 0x0000, type: 0x10 } },
         commands: {}, commandsResponse: {},
     })
 ];

@@ -29,9 +29,22 @@ extern "C"
 #define SWITCH_DEFAULT_ON 1
 #define SWITCH_DEFAULT_OFF 0
 
+
+#if HW_VERSION == 122
+#define GPIO_OUTPUT_PIN_1 23
+#define GPIO_OUTPUT_PIN_2 24
+#elif HW_VERSION == 127
 #define GPIO_OUTPUT_PIN_1 26
 #define GPIO_OUTPUT_PIN_2 27
+#else
+#define GPIO_OUTPUT_PIN_1 26
+#endif
+
+#if HW_VERSION == 127 || HW_VERSION == 122
 #define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_OUTPUT_PIN_1) | (1ULL << GPIO_OUTPUT_PIN_2))
+#else
+#define GPIO_OUTPUT_PIN_SEL (1ULL << GPIO_OUTPUT_PIN_1)
+#endif
 
   /**
    * @brief Set switch power (on/off).
@@ -39,6 +52,13 @@ extern "C"
    * @param  power  The switch power to be set
    */
   void switch_driver_set_power(bool power);
+
+  /**
+   * @brief Set relay power (on/off).
+   *
+   * @param  power  The relay power to be set
+   */
+  void switch_relay_set_power(bool power);
 
   /**
    * @brief switch driver init, be invoked where you want to use switch

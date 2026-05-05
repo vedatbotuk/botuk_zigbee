@@ -136,6 +136,7 @@ binary_to_decimal(${MODEL_ID} MODEL_ID_DECIMAL)
 format_decimal(${MODEL_ID_DECIMAL} 5 MODEL_ID_FORMATED)
 add_definitions(-DMODEL_ID_MAP=${MODEL_ID_FORMATED}_${HW_VERSION})
 add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
+Message(STATUS "MODEL_ID_DECIMAL: ${MODEL_ID_DECIMAL}")
 #### Convert Macros ####
 #### ############## ####
 
