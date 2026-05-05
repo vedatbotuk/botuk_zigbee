@@ -20,6 +20,10 @@
 
 // TODO: Rename the Macros. For example WATERLEAK_FEATURES, DHT22, etc.
 
+#if (SENSOR_MAP >> 5 & 1) == 1
+#define IRRIGATION_FEATURES true
+#endif
+
 #if (SENSOR_MAP >> 6 & 1) == 1
 #define SWITCH_FEATURES true
 #endif

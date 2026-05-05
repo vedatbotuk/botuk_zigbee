@@ -17,12 +17,18 @@ const addCustomClusters = () => [
         ID: 0xFC07,
         attributes: { onOff: {name: 'onOff', ID: 0x0000, type: 0x10} },
         commands: {}, commandsResponse: {},
+    }),
+    deviceAddCustomCluster('yellowLight', {
+        name: 'yellowLight',
+        ID: 0xFC08,
+        attributes: { onOff: {name: 'onOff', ID: 0x0000, type: 0x10} },
+        commands: {}, commandsResponse: {},
     })
 ];
 
 const definition = {
-    zigbeeModel: ['50304_126'],
-    model: '50304_126',
+    zigbeeModel: ['16512_125'],
+    model: '16512_125',
     vendor: 'Botuk',
     description: 'ESP32H2 LED status indicator',
 
@@ -39,6 +45,16 @@ const definition = {
             description: 'Red LED on/off state',
             // reporting: { min: 1, max: 3600, change: 1 },
             access: 'ALL', // This enables GET, SET, and STATE (reporting)
+        }),
+        binary({
+            name: 'state_yellow',
+            cluster: 'yellowLight',
+            attribute: 'onOff',
+            valueOn: ['ON', 1],
+            valueOff: ['OFF', 0],
+            description: 'Yellow LED on/off state',
+            // reporting: { min: 1, max: 3600, change: 1 },
+            access: 'ALL',
         })
     ],
 
@@ -49,7 +65,7 @@ const definition = {
             const state = msg.data['onOff'] !== undefined ? (msg.data['onOff'] ? 'ON' : 'OFF') : null;
             if (state) {
                 // Map cluster ID back to our state name
-                const clusterMap = { 0xFC07: 'state_red' };
+                const clusterMap = { 0xFC07: 'state_red', 0xFC08: 'state_yellow' };
                 return { [clusterMap[msg.cluster]]: state };
             }
         },
@@ -59,7 +75,8 @@ const definition = {
         key: ['state_red'],
         convertSet: async (entity, key, value, meta) => {
             const clusterMap = {
-                'state_red': 0xFC07
+                'state_red': 0xFC07,
+                'state_yellow': 0xFC08
             };
 
             const clusterId = clusterMap[key];
@@ -79,7 +96,8 @@ const definition = {
 
         convertGet: async (entity, key, meta) => {
             const clusterMap = {
-                'state_red': 0xFC07
+                'state_red': 0xFC07,
+                'state_yellow': 0xFC08
             };
 
             await entity.read(
@@ -93,18 +111,20 @@ const definition = {
     // TODO: This we dont nedd
     configure: async (device, coordinatorEndpoint) => {
         const endpoint = device.getEndpoint(10);
-        
-        try {
-            await endpoint.bind('redLight', coordinatorEndpoint);
-            await endpoint.configureReporting('redLight', [{
-                attribute: 'onOff',
-                minimumReportInterval: 1,
-                maximumReportInterval: 3600,
-                reportableChange: 0
-            }]);
-            logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
-        } catch (error) {
-            logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
+        const clusters = [0xFC07, 0xFC08];
+        for (const cluster of clusters) {
+            try {
+                await endpoint.bind(cluster, coordinatorEndpoint);
+                await endpoint.configureReporting(cluster, [{
+                    attribute: 'onOff',
+                    minimumReportInterval: 1,
+                    maximumReportInterval: 3600,
+                    reportableChange: 0
+                }]);
+                logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);
+            } catch (error) {
+                logger.warning(`Failed to configure cluster ${cluster}: ${error}`, NS);
+            }
         }
     },
 
