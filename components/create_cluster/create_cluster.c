@@ -346,7 +346,7 @@ void create_irrigation_cluster(esp_zb_cluster_list_t *esp_zb_cluster_list)
     uint8_t undefined_value = 0;
     esp_zb_attribute_list_t *esp_zb_irrigation_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_IRRIGATION_ON_OFF);
     esp_zb_custom_cluster_add_custom_attr(
-        esp_zb_irrigation_cluster, ESP_ZB_ZCL_ATTR_IRRIGATION_ON_OFF_ID, ESP_ZB_ZCL_ATTR_TYPE_U8,
+        esp_zb_irrigation_cluster, ESP_ZB_ZCL_ATTR_IRRIGATION_ON_OFF_ID, ESP_ZB_ZCL_ATTR_TYPE_BOOL,
         ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &undefined_value);
     esp_zb_cluster_list_add_custom_cluster(esp_zb_cluster_list, esp_zb_irrigation_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 }
