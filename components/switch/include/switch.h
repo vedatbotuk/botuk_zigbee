@@ -31,8 +31,8 @@ extern "C"
 
 
 #if HW_VERSION == 122
-#define GPIO_OUTPUT_PIN_1 23
-#define GPIO_OUTPUT_PIN_2 24
+#define GPIO_OUTPUT_PIN_1 10
+#define GPIO_OUTPUT_PIN_2 11
 #elif HW_VERSION == 127
 #define GPIO_OUTPUT_PIN_1 26
 #define GPIO_OUTPUT_PIN_2 27

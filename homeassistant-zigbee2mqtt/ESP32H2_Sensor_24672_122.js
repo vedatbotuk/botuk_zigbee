@@ -28,6 +28,7 @@ const definition = {
 
     extend: [
         ...addCustomClusters(),
+        onOff(),
 
         // Using name: 'state_red' here creates the 'state_red' expose automatically
         binary({
@@ -43,51 +44,51 @@ const definition = {
     ],
 
     fromZigbee: [{
-        cluster: /.*irrigation.*/,
-        type: ['attributeReport', 'readResponse'],
-        convert: (model, msg, publish, options, meta) => {
-            const state = msg.data['onOff'] !== undefined ? (msg.data['onOff'] ? 'ON' : 'OFF') : null;
-            if (state) {
-                // Map cluster ID back to our state name
+            cluster: /.*irrigation.*/,
+            type: ['attributeReport', 'readResponse'],
+            convert: (model, msg, publish, options, meta) => {
+                const state = msg.data['onOff'] !== undefined ? (msg.data['onOff'] ? 'ON' : 'OFF') : null;
+                if (state) {
+                    // Map cluster ID back to our state name
                 const clusterMap = { 0xFC0C: 'state_irrigation' };
                 return { [clusterMap[msg.cluster]]: state };
-            }
-        },
+                }
+            },
     }],
 
     toZigbee: [{
         key: ['state_irrigation'],
-        convertSet: async (entity, key, value, meta) => {
-            const clusterMap = {
+            convertSet: async (entity, key, value, meta) => {
+                const clusterMap = {
                 'state_irrigation': 0xFC0C,
-            };
+                };
 
-            const clusterId = clusterMap[key];
+                const clusterId = clusterMap[key];
             const on = value.toLowerCase() === 'on' ? 1 : 0;
 
-            await entity.write(
-                clusterId,
+                await entity.write(
+                    clusterId,
                 { 0x0000: { value: on, type: 0x10 } },
-                {
-                    timeout: 30000,
+                    {
+                        timeout: 30000,
                     disableDefaultResponse: true
                 }
-            );
+                );
 
             return { state: { [key]: value.toUpperCase() } };
-        },
+            },
 
-        convertGet: async (entity, key, meta) => {
-            const clusterMap = {
+            convertGet: async (entity, key, meta) => {
+                const clusterMap = {
                 'state_irrigation': 0xFC0C
-            };
+                };
 
             await entity.read(
                 clusterMap[key],
                 ['onOff'],
                 { timeout: 30000 }
             );
-        },
+            },
     }],
 
     // TODO: This we dont nedd
@@ -99,8 +100,8 @@ const definition = {
                 await endpoint.bind(cluster, coordinatorEndpoint);
                 await endpoint.configureReporting(cluster, [{
                     attribute: 'onOff',
-                    minimumReportInterval: 1,
-                    maximumReportInterval: 3600,
+                        minimumReportInterval: 0,
+                        maximumReportInterval: 6500,
                     reportableChange: 0
                 }]);
                 logger.info(`Configured cluster ${cluster} for ${device.ieeeAddress}`, NS);

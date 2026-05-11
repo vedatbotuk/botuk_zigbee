@@ -32,7 +32,7 @@ void switch_driver_set_power(bool power)
 void switch_relay_set_power(bool power)
 {
   int level = power ? 1 : 0;
-  gpio_set_level(GPIO_OUTPUT_PIN_1, level);
+  gpio_set_level(GPIO_OUTPUT_PIN_2, level);
 }
 #endif
 

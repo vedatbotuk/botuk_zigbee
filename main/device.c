@@ -86,7 +86,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 static esp_err_t zb_switch_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
-    bool light_state = 0;
+    bool switch_state = 0;
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
@@ -107,14 +107,16 @@ static esp_err_t zb_switch_attribute_handler(const esp_zb_zcl_set_attr_value_mes
                 }
                 else
                 {
-                    light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                    ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                    switch_driver_set_power(light_state);
+                    switch_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : switch_state;
+                    ESP_LOGI(TAG, "Switch sets to %s", switch_state ? "On" : "Off");
+                    switch_driver_set_power(switch_state);
+                    zb_update_switch(switch_state);
                 }
 #else
-                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Light sets to %s", light_state ? "On" : "Off");
-                switch_driver_set_power(light_state);
+                switch_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : switch_state;
+                ESP_LOGI(TAG, "Switch sets to %s", switch_state ? "On" : "Off");
+                switch_driver_set_power(switch_state);
+                zb_update_switch(switch_state);
 #endif
             }
         }

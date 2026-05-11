@@ -57,5 +57,7 @@ void zb_report_builtin_light_flash_green();
 void zb_report_builtin_light_flash_white();
 void zb_update_irrigation(uint8_t switch_status);
 void zb_report_irrigation();
+void zb_update_switch(bool switch_state);
+void zb_report_switch();
 
 #endif // ZB_TEMP_SENSOR_H
