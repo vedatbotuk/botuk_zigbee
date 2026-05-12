@@ -331,8 +331,9 @@ if(SECOND_NUM STREQUAL "1")
 
         set(FULL_PATH ${IMAGES_DIR}/${VERSION_DIR})
         
-        # Grab specifically the dev or prod binary based on CMake variable
-        file(GLOB BIN_FILES "${FULL_PATH}/*_${ENV_SUFFIX}.bin")
+        # Grab specifically the dev or prod binary for the current model/HW
+        file(GLOB BIN_FILES "${FULL_PATH}/${MODEL_ID_FORMATED}_${HW_VERSION}_*_${ENV_SUFFIX}.bin")
+        list(SORT BIN_FILES)
 
         list(LENGTH BIN_FILES BIN_COUNT)
         if(BIN_COUNT GREATER 0)
