@@ -18,12 +18,12 @@ More information about [ESP32-H2](https://docs.espressif.com/projects/esp-dev-ki
 Below is the pinout diagram for the device:
 
 ### ESP32-H2 devkitm-1
-Use `HW_VERSION=257`
+Use `HW_VERSION=127`
 
 <img src="img/esp32-h2-devkitm-1-v1.2_pinlayout.png" alt="ESP32-H2 devkitm-1 Pinout" width="60%"/>
 
 ### ESP32-H2-Zero
-Use `HW_VERSION=258`
+Use `HW_VERSION=128`
 
 <img src="img/ESP32-H2-Zero_pinoutlayout.png" alt="ESP32-H2-Zero Pinout" width="60%"/>
 
@@ -58,7 +58,7 @@ To set up the environment for building the project, follow these steps:
 ### Zigpy Installation
 To install Zigpy for Zigbee communication:
 ```bash
-pip3 install zigpy
+pip3 install zigpy detools>=0.49.0
 ```
 
 ## Build and Flash Instructions
@@ -171,6 +171,7 @@ v5.5.1
 
 After changing version, should be rebuild docker container.
 ## Rebuild the Docker Image
+This is also included in Gitlab CI and trigerred for dev and main branches.
 ```bash
 docker build \
   --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) \

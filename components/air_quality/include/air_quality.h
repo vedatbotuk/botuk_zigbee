@@ -33,16 +33,6 @@ int8_t bus_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, vo
 void bus_delay_us(uint32_t period, void *intf_ptr);
 
 /**
- * @brief Load BSEC state from NVS
- */
-void load_bsec_state(void);
-
-/**
- * @brief Save BSEC state to NVS
- */
-void save_bsec_state(void);
-
-/**
  * @brief Convert accuracy code to string
  */
 const char* accuracy_str(uint8_t acc);

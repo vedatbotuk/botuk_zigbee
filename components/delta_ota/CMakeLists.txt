@@ -1,5 +1,4 @@
 idf_component_register(SRC_DIRS "src"
                        INCLUDE_DIRS "include"
-                       REQUIRES
-                       led_strip driver
+                       PRIV_REQUIRES app_update espressif__esp_delta_ota
 )

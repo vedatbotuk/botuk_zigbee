@@ -6,8 +6,8 @@ const ota = require('zigbee-herdsman-converters/lib/ota');
 const e = exposes.presets;
 
 const definition = {
-  zigbeeModel: ['31488'],
-  model: '31488',
+  zigbeeModel: ['31488_127'],
+  model: '31488_127',
   vendor: 'Botuk',
   description: 'Test router deep-sleep, temperature, humidity, and water leak sensor with OTA support',
   fromZigbee: [

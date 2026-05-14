@@ -1,0 +1,21 @@
+.push_binaries_template:
+  script:
+    - source settings.conf
+    - |
+      if [[ $FIRMWARE_VERSION == ver* ]]; then
+        NEW_DIR="${FIRMWARE_VERSION}_${VERSION}"
+      else
+        NEW_DIR="ver${FIRMWARE_VERSION}_${VERSION}"
+      fi
+    - cd botuk-zigbee-images
+    - git config user.email "ci-bot@botuk.de"
+    - git config user.name "GitLab CI Bot"
+    - git add "${NEW_DIR}/"
+    - |
+      if git diff-index --quiet HEAD; then
+        echo "No changes to commit."
+      else
+        git commit -m "ci: add production binaries for $NEW_DIR"
+        git push https://oauth2:${IMAGE_REPO_PUSH_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git HEAD:main
+      fi
+    - cd ..

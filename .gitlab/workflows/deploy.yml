@@ -1,0 +1,98 @@
+.deploy_rule: &deploy_rule
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+
+prepare_job:
+  stage: prepare
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
+  rules: *deploy_rule
+  script:
+    - echo "Loading FIRMWARE_VERSION and VERSION from settings.conf"
+    - source settings.conf
+    - export FIRMWARE_VERSION
+    - export VERSION
+    - echo "FIRMWARE_VERSION=$FIRMWARE_VERSION" >> variables.env
+    - echo "VERSION=$VERSION"  >> variables.env
+    - echo "TAG=${FIRMWARE_VERSION}_${VERSION}" >> variables.env
+  artifacts:
+    reports:
+      dotenv: variables.env
+
+deploy:
+  stage: deploy
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
+  needs:
+    - job: prepare_job
+      artifacts: true
+  rules: *deploy_rule
+  script:
+    - echo "Loading FIRMWARE_VERSION and VERSION from settings.conf"
+    - source settings.conf
+    - export FIRMWARE_VERSION
+    - export VERSION
+    - NEW_TAG=${FIRMWARE_VERSION}_${VERSION}
+    
+    - echo "Cloning botuk-zigbee-images repo"
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.botuk.de/vedat/botuk-zigbee-images.git
+    - chmod +x ./scripts/prod.sh
+    - ./scripts/prod.sh
+    
+    - !reference [.push_binaries_template, script]
+
+    - git config user.name "gitlab-ci-bot"
+    - git config user.email "gitlab-ci-bot@gitlab.botuk.de"
+
+    - LATEST_TAG=$(git describe --tags --abbrev=0 || echo "")
+    - COMMITS=$(git log "$LATEST_TAG"..HEAD --pretty=format:"%H|%s")
+    - RELEASE_NOTES="Release Notes"
+    - >
+      if [[ -z "$COMMITS" ]]; then
+        RELEASE_NOTES="No new changes since last tag.";
+      else
+        IFS=$'\n';
+        for COMMIT in $COMMITS; do
+          COMMIT_HASH=$(echo "$COMMIT" | cut -d '|' -f 1);
+          COMMIT_MESSAGE=$(echo "$COMMIT" | cut -d '|' -f 2);
+          RELEASE_NOTES="${RELEASE_NOTES}\n- Commit: ${COMMIT_HASH}\n  Message: ${COMMIT_MESSAGE}";
+        done
+      fi
+    - echo -e "$RELEASE_NOTES" > release_notes.txt
+
+    - >
+      if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+        echo "Tag $NEW_TAG already exists locally, deleting it first."
+        git tag -d "$NEW_TAG"
+      fi
+
+    - git tag $NEW_TAG
+    - git push "https://gitlab-ci-token:${RELEASE_TOKEN}@gitlab.botuk.de/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.git" "$NEW_TAG"
+
+    - echo "Generating release assets..."
+    - PACKAGE_REGISTRY_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$NEW_TAG/1.0.0"
+    - >
+      cd ota; assets="["; for file in *; do if [[ -f "$file" ]]; then file_name=$(basename "$file");
+      assets="$assets
+      {\"name\": \"$file_name\",
+      \"url\": \"${PACKAGE_REGISTRY_URL}/$file\",
+      \"link_type\":\"other\"
+      },";
+      curl --header "JOB-TOKEN:${CI_JOB_TOKEN}" --upload-file $file "${PACKAGE_REGISTRY_URL}/$file";
+      fi;
+      done;
+      assets="${assets%,}]"
+
+    - >
+      release-cli create --description "$(echo -e "$RELEASE_NOTES")"
+      --tag-name "$NEW_TAG"
+      --ref "$CI_COMMIT_SHA"
+      --assets-link "$assets"
+  artifacts:
+    paths:
+      - ota/*
+    expire_in: 1 hour

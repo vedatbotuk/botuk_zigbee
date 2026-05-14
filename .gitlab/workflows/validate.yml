@@ -1,0 +1,22 @@
+check_pr_description:
+  stage: validate
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
+  when: always
+  only:
+    - merge_requests
+  script:
+    - API_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID"
+    - 'echo "Fetching PR description from: $API_URL"'
+    - >
+      API_RESPONSE=$(curl --silent --header "JOB-TOKEN:${CI_JOB_TOKEN}" "$API_URL")
+    - MR_DESCRIPTION=$(echo "$API_RESPONSE" | jq -r '.description')
+    - 'echo "PR Description: $MR_DESCRIPTION"'
+    - >
+      if echo "$MR_DESCRIPTION" | grep -q '\- \[ \]'; then
+        echo "Error: Found unchecked to-do items in PR description.";
+        exit 1;
+      else
+        echo "No unchecked to-do items found in PR description.";
+      fi

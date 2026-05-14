@@ -23,8 +23,18 @@ void switch_driver_set_power(bool power)
 {
   int level = power ? 1 : 0;
   gpio_set_level(GPIO_OUTPUT_PIN_1, level); // 27.4 mA at 3.3V
+#if HW_VERSION == 127
   gpio_set_level(GPIO_OUTPUT_PIN_2, level); // 26.5 mA at 3.3V
+#endif
 }
+
+#if HW_VERSION == 122
+void switch_relay_set_power(bool power)
+{
+  int level = power ? 1 : 0;
+  gpio_set_level(GPIO_OUTPUT_PIN_2, level);
+}
+#endif
 
 // TODO change to switch_driver_init
 esp_err_t switch_driver_init(bool power)
@@ -40,7 +50,9 @@ esp_err_t switch_driver_init(bool power)
 
   gpio_config(&io_conf); // Apply the configuration
   gpio_sleep_sel_dis(GPIO_OUTPUT_PIN_1);
+#if HW_VERSION == 127
   gpio_sleep_sel_dis(GPIO_OUTPUT_PIN_2);
+#endif
   switch_driver_set_power(power);
   return ESP_OK;
 }

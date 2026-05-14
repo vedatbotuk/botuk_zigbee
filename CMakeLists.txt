@@ -59,6 +59,7 @@ if(EXISTS ${SETTINGS_FILE})
 
     # Add other settings as preprocessor definitions
     add_definitions(-DFIRMWARE_VERSION="${FIRMWARE_VERSION}")
+    add_definitions(-DHW_VERSION=${HW_VERSION})
     add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
     add_definitions(-DED_KEEP_ALIVE=${ED_KEEP_ALIVE})
     if(TESTING EQUAL "1")
@@ -133,8 +134,9 @@ endfunction()
 add_definitions(-DSENSOR_MAP=0b${MODEL_ID})
 binary_to_decimal(${MODEL_ID} MODEL_ID_DECIMAL)
 format_decimal(${MODEL_ID_DECIMAL} 5 MODEL_ID_FORMATED)
-add_definitions(-DMODEL_ID_MAP=${MODEL_ID_FORMATED})
+add_definitions(-DMODEL_ID_MAP=${MODEL_ID_FORMATED}_${HW_VERSION})
 add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
+Message(STATUS "MODEL_ID_DECIMAL: ${MODEL_ID_DECIMAL}")
 #### Convert Macros ####
 #### ############## ####
 
@@ -243,21 +245,173 @@ project(${FILE_NAME})
 
 #### ###################### ####
 #### Create OTA-Update File ####
-# Check the seccond number of MODEL_ID
+
+# Check the second number of MODEL_ID
 string(SUBSTRING ${MODEL_ID} 1 1 SECOND_NUM)
-if(SECOND_NUM EQUAL "1")
+
+if(SECOND_NUM STREQUAL "1")
     message(STATUS "OTA is enabled for this model. Creating OTA-Update file after build.")
+
     set(MY_DIR ${CMAKE_SOURCE_DIR}/ota)
     file(MAKE_DIRECTORY ${MY_DIR})
+    file(MAKE_DIRECTORY ${MY_DIR}/patches)
 
-    set(PYTHON_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/create_ota.py)
-    add_custom_target(RunPostBuildScript ALL
-        COMMAND ${CMAKE_COMMAND} -E echo  "Running Python script..."
-        COMMAND ${CMAKE_COMMAND} -E env python3 ${PYTHON_SCRIPT} -m ${MANUFACTURER} -i ${MODEL_ID_DECIMAL} -v ${VERSION} ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin > ${CMAKE_SOURCE_DIR}/ota/${FILE_NAME}.ota
-    )
-    add_dependencies(RunPostBuildScript ${FILE_NAME}.elf)
+    set(IMAGES_DIR ${CMAKE_SOURCE_DIR}/botuk-zigbee-images)
+
+    # --------------------------------------------------
+    # Determine environment (dev vs prod) from DEV_PROD
+    # --------------------------------------------------
+    string(TOLOWER "${DEV_PROD}" ENV_SUFFIX)
+    if(NOT ENV_SUFFIX)
+        set(ENV_SUFFIX "dev") # Fallback if DEV_PROD is not set
+        message(WARNING "DEV_PROD is not set! Defaulting to 'dev' binaries.")
+    endif()
+
+    # --------------------------------------------------
+    # Get version folders (verX.YYY_*)
+    # --------------------------------------------------
+    file(GLOB VERSION_DIRS RELATIVE ${IMAGES_DIR} "${IMAGES_DIR}/ver*")
+
+    set(SORTED_VERSION_DIRS)
+
+    foreach(DIR ${VERSION_DIRS})
+        # Extract version number (e.g., 0.103)
+        string(REGEX REPLACE "^ver([0-9]+\\.[0-9]+)_.*" "\\1" VERSION_NUM ${DIR})
+
+        # Pad version for correct sorting (0.103 -> 000103)
+        string(REPLACE "." "" VERSION_NUM_PADDED ${VERSION_NUM})
+        string(LENGTH ${VERSION_NUM_PADDED} LEN)
+        math(EXPR PAD_LEN "6 - ${LEN}")
+
+        set(PADDING "")
+        if(PAD_LEN GREATER 0)
+            foreach(i RANGE 1 ${PAD_LEN})
+                set(PADDING "${PADDING}0")
+            endforeach()
+        endif()
+
+        set(SORT_KEY "${PADDING}${VERSION_NUM_PADDED}")
+
+        # Store as "key|value" to prevent CMake from flattening the list
+        list(APPEND SORTED_VERSION_DIRS "${SORT_KEY}|${DIR}")
+    endforeach()
+
+    # Sort by key (string sort works now)
+    list(SORT SORTED_VERSION_DIRS)
+    list(REVERSE SORTED_VERSION_DIRS)
+
+    # Extract only directory names
+    set(VERSION_DIRS)
+
+    foreach(ITEM ${SORTED_VERSION_DIRS})
+        # ITEM is "key|dir". Replace "|" with ";" to turn it into a 2-element CMake list
+        string(REPLACE "|" ";" ITEM_LIST "${ITEM}")
+        list(GET ITEM_LIST 1 DIR_NAME)
+        list(APPEND VERSION_DIRS ${DIR_NAME})
+    endforeach()
+
+    # Take last 5 versions
+    list(LENGTH VERSION_DIRS TOTAL_VERSIONS)
+    if(TOTAL_VERSIONS GREATER 5)
+        list(SUBLIST VERSION_DIRS 0 5 VERSION_DIRS)
+    endif()
+
+    message(STATUS "Using base versions: ${VERSION_DIRS}")
+
+    # 1. Extract the NEW version info once outside the loop
+    string(REPLACE "_" ";" NEW_PARTS "${FILE_NAME}")
+    list(GET NEW_PARTS 2 NEW_VER)
+
+    set(NEW_BINARY ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin)
+
+    # --------------------------------------------------
+    # Loop over base versions
+    # --------------------------------------------------
+    foreach(VERSION_DIR ${VERSION_DIRS})
+
+        set(FULL_PATH ${IMAGES_DIR}/${VERSION_DIR})
+        
+        # Grab specifically the dev or prod binary for the current model/HW
+        file(GLOB BIN_FILES "${FULL_PATH}/${MODEL_ID_FORMATED}_${HW_VERSION}_*_${ENV_SUFFIX}.bin")
+        list(SORT BIN_FILES)
+
+        list(LENGTH BIN_FILES BIN_COUNT)
+        if(BIN_COUNT GREATER 0)
+            list(GET BIN_FILES 0 BASE_BINARY)
+            get_filename_component(BASE_NAME ${BASE_BINARY} NAME_WE)
+
+            # 2. Extract BASE version info immediately
+            string(REPLACE "_" ";" BASE_PARTS "${BASE_NAME}")
+            list(GET BASE_PARTS 0 PREFIX_1)
+            list(GET BASE_PARTS 1 PREFIX_2)
+            list(GET BASE_PARTS 2 BASE_VER)
+            list(GET BASE_PARTS 3 SUFFIX)
+
+            # 3. ONLY proceed if the versions are different
+            if(NOT BASE_VER STREQUAL NEW_VER)
+                message(STATUS "Creating delta: ${BASE_VER} -> ${NEW_VER} (${ENV_SUFFIX})")
+
+                set(PATCH_FILE ${MY_DIR}/patches/${FILE_NAME}_from_${BASE_NAME}.patch)
+
+                add_custom_target(run_delta_ota_patch_gen_${BASE_NAME} ALL
+                    COMMAND ${CMAKE_COMMAND} -E echo "Generating patch from ${BASE_NAME}"
+                    COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/esp_delta_ota_patch_gen.py
+                        create_patch
+                        --chip esp32-h2
+                        --base_binary ${BASE_BINARY}
+                        --new_binary ${NEW_BINARY}
+                        --patch_file_name ${PATCH_FILE}
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    COMMENT "Generating Delta OTA patch from ${BASE_NAME}"
+                )
+
+                if(TARGET gen_project_binary)
+                    add_dependencies(run_delta_ota_patch_gen_${BASE_NAME} gen_project_binary)
+                else()
+                    add_dependencies(run_delta_ota_patch_gen_${BASE_NAME} ${FILE_NAME}.elf)
+                endif()
+
+                # Construct output target name
+                set(CUSTOM_OTA_NAME "${PREFIX_1}_${PREFIX_2}_${BASE_VER}_to_${NEW_VER}_${SUFFIX}.ota")
+                set(OTA_OUTPUT ${MY_DIR}/${CUSTOM_OTA_NAME})
+
+                add_custom_target(run_post_build_${BASE_NAME} ALL
+                    COMMAND ${CMAKE_COMMAND} -E env python3 ${CMAKE_SOURCE_DIR}/scripts/create_ota.py
+                        -m ${MANUFACTURER}
+                        -i ${MODEL_ID_DECIMAL}
+                        -v ${VERSION}
+                        ${PATCH_FILE}
+                        > ${OTA_OUTPUT}                 
+                )
+
+                add_dependencies(run_post_build_${BASE_NAME} run_delta_ota_patch_gen_${BASE_NAME})
+            else()
+                message(STATUS "Skipping OTA generation: Base version (${BASE_VER}) is the same as New version.")
+            endif()
+
+        else()
+            message(WARNING "No _${ENV_SUFFIX}.bin file found in ${FULL_PATH}. Skipping OTA generation.")
+        endif()
+
+    endforeach()
+
 else()
-    message(STATUS "OTA is not enabled for this model. No OTA-Update file will be created.")    
+    message(STATUS "OTA is not enabled for this model. No OTA-Update file will be created.")
 endif()
 #### Create OTA-Update File ####
 #### ###################### ####
+
+#### ########################################## ####
+#### Copy Binary to botuk-zigbee-images Repo    ####
+
+# Define the destination directory based on your version variables
+set(IMAGE_DEST_DIR "${CMAKE_SOURCE_DIR}/botuk-zigbee-images/${FIRMWARE_VERSION}_${VERSION}")
+
+# Add a post-build command to create the directory and copy the binary
+add_custom_command(
+    TARGET gen_project_binary POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${IMAGE_DEST_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin ${IMAGE_DEST_DIR}/${FILE_NAME}.bin
+    COMMENT "Copying ${FILE_NAME}.bin to ${IMAGE_DEST_DIR}"
+)
+#### ########################################## ####

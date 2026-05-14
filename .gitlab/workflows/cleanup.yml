@@ -1,0 +1,9 @@
+cleanup: 
+  stage: cleanup
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee
+    pull_policy: always
+  script:
+    - rm -rf ./*
+  only:
+    - merge_requests
