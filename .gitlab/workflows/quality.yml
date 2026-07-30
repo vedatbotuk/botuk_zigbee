@@ -1,0 +1,20 @@
+check_python_scripts:
+  stage: validate
+  image: python:3.11-alpine
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+  script:
+    - python3 -m compileall scripts
+
+validate_settings_conf:
+  stage: validate
+  image: alpine:3.20
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+  script:
+    - test -f settings.conf
+    - grep -Eq '^FIRMWARE_VERSION=' settings.conf
+    - grep -Eq '^VERSION=' settings.conf
+    - grep -Eq '^TESTING=' settings.conf

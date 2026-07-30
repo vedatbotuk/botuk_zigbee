@@ -31,6 +31,8 @@ include:
   - local: '.gitlab/workflows/build.yml'
   - local: '.gitlab/workflows/deploy.yml'
   - local: '.gitlab/workflows/cleanup.yml'
+  - local: '.gitlab/workflows/quality.yml'
+  - local: '.gitlab/workflows/release-checks.yml'
 
 # 3. Component Extends
 sync_wiki:

@@ -1,0 +1,12 @@
+check_release_metadata:
+  stage: validate
+  image: alpine:3.20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+  script:
+    - test -f settings.conf
+    - test -f README.md
+    - grep -Eq '^FIRMWARE_VERSION=' settings.conf
+    - grep -Eq '^VERSION=' settings.conf
+    - grep -Eq '^DEV_PROD=' settings.conf
