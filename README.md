@@ -43,7 +43,7 @@ To set up the environment for building the project, follow these steps:
     ```bash
     mkdir -p ~/esp
     cd ~/esp
-    git clone -b v5.4-dev --recursive https://github.com/espressif/esp-idf.git
+    git clone -b v5.5.2 --recursive https://github.com/espressif/esp-idf.git
     ```
 1. Install the ESP-IDF toolchain:
     ```bash
