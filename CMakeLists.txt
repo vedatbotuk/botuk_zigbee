@@ -1,32 +1,41 @@
 # The following lines of boilerplate have to be in your project's CMakeLists
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.16)
+
 set(EXTRA_COMPONENT_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/components
-    )
+    "${CMAKE_CURRENT_SOURCE_DIR}/components"
+)
 
 # Path to the settings file
-set(SETTINGS_FILE ${CMAKE_SOURCE_DIR}/settings.conf)
+set(SETTINGS_FILE "${CMAKE_SOURCE_DIR}/settings.conf")
 
 # Ensure that changes in settings.conf trigger a reconfiguration
-configure_file(${SETTINGS_FILE} ${CMAKE_BINARY_DIR}/settings.conf COPYONLY)
+configure_file("${SETTINGS_FILE}" "${CMAKE_BINARY_DIR}/settings.conf" COPYONLY)
 
 # Function to read the settings file and extract values
 function(parse_settings key result)
-    file(STRINGS ${SETTINGS_FILE} content)
+    set(_value "")
+    file(STRINGS "${SETTINGS_FILE}" content)
 
-    # Iterate through each line of the settings file
     foreach(line IN LISTS content)
-        # Check if the line starts with the requested key
-        if("${line}" MATCHES "^${key}=")
-            string(REPLACE "${key}=" "" value "${line}")
-            set(${result} "${value}" PARENT_SCOPE)
+        string(STRIP "${line}" stripped_line)
+        if(stripped_line MATCHES "^${key}=")
+            string(REPLACE "${key}=" "" value "${stripped_line}")
+            string(STRIP "${value}" value)
+            set(_value "${value}")
+            break()
         endif()
     endforeach()
+
+    if(_value STREQUAL "")
+        message(FATAL_ERROR "Required setting '${key}' was not found in ${SETTINGS_FILE}")
+    endif()
+
+    set(${result} "${_value}" PARENT_SCOPE)
 endfunction()
 
 # Check if the settings file exists
-if(EXISTS ${SETTINGS_FILE})
+if(EXISTS "${SETTINGS_FILE}")
     # Extract specific settings from the file
     parse_settings("FIRMWARE_VERSION" FIRMWARE_VERSION)
     parse_settings("DEV_PROD" DEV_PROD)
@@ -57,25 +66,28 @@ if(EXISTS ${SETTINGS_FILE})
     message(STATUS "SIMULATE: ${SIMULATE}")
     message(STATUS "SIMULATE_ZIGBEE_CHANNEL: ${SIMULATE_ZIGBEE_CHANNEL}")
 
-    # Add other settings as preprocessor definitions
-    add_definitions(-DFIRMWARE_VERSION="${FIRMWARE_VERSION}")
-    add_definitions(-DHW_VERSION=${HW_VERSION})
-    add_definitions(-DDEVICE_ENDPOINT=${DEVICE_ENDPOINT})
-    add_definitions(-DED_KEEP_ALIVE=${ED_KEEP_ALIVE})
-    if(TESTING EQUAL "1")
-        add_definitions(-DTESTING=${TESTING})
-        add_definitions(-DZIGBEE_CHANNEL=${SIMULATE_ZIGBEE_CHANNEL})
+    # Enable compile_commands.json for CI and editor tooling
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Generate compile_commands.json" FORCE)
+
+    # Add common settings as preprocessor definitions
+    add_compile_definitions(
+        FIRMWARE_VERSION="${FIRMWARE_VERSION}"
+        HW_VERSION=${HW_VERSION}
+        DEVICE_ENDPOINT=${DEVICE_ENDPOINT}
+        ED_KEEP_ALIVE=${ED_KEEP_ALIVE}
+        DEEP_SLEEP_TIME=${DEEP_SLEEP_TIME}
+    )
+
+    if(TESTING STREQUAL "1")
+        add_compile_definitions(TESTING=${TESTING} ZIGBEE_CHANNEL=${SIMULATE_ZIGBEE_CHANNEL})
     else()
-        add_definitions(-DZIGBEE_CHANNEL=${ZIGBEE_CHANNEL})
-    endif()
-    
-    if(SIMULATE EQUAL "1")
-        add_definitions(-DSIMULATE=${SIMULATE})
-        message(STATUS "Simulating active, dummy payload will be created.")               
+        add_compile_definitions(ZIGBEE_CHANNEL=${ZIGBEE_CHANNEL})
     endif()
 
-    add_definitions(-DDEEP_SLEEP_TIME=${DEEP_SLEEP_TIME})
-
+    if(SIMULATE STREQUAL "1")
+        add_compile_definitions(SIMULATE=${SIMULATE})
+        message(STATUS "Simulating active, dummy payload will be created.")
+    endif()
 else()
     message(FATAL_ERROR "Settings file not found: ${SETTINGS_FILE}")
 endif()
@@ -238,6 +250,10 @@ add_definitions(-DOTA_UPGRADE_IMAGE_TYPE=${MODEL_ID_DECIMAL})
 add_definitions(-DOTA_UPGRADE_MANUFACTURER=${MANUFACTURER})
 #### OTA MACROS ####
 #### ########## ####
+
+if(NOT DEFINED ENV{IDF_PATH} OR "$ENV{IDF_PATH}" STREQUAL "")
+    message(FATAL_ERROR "IDF_PATH must point to an ESP-IDF installation before configuring this project.")
+endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(FILE_NAME "${MODEL_ID_FORMATED}_${HW_VERSION}_${VERSION}_${DEV_PROD}")
@@ -408,10 +424,14 @@ endif()
 set(IMAGE_DEST_DIR "${CMAKE_SOURCE_DIR}/botuk-zigbee-images/${FIRMWARE_VERSION}_${VERSION}")
 
 # Add a post-build command to create the directory and copy the binary
-add_custom_command(
-    TARGET gen_project_binary POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${IMAGE_DEST_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin ${IMAGE_DEST_DIR}/${FILE_NAME}.bin
-    COMMENT "Copying ${FILE_NAME}.bin to ${IMAGE_DEST_DIR}"
-)
+if(TARGET gen_project_binary)
+    add_custom_command(
+        TARGET gen_project_binary POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${IMAGE_DEST_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/${FILE_NAME}.bin ${IMAGE_DEST_DIR}/${FILE_NAME}.bin
+        COMMENT "Copying ${FILE_NAME}.bin to ${IMAGE_DEST_DIR}"
+    )
+else()
+    message(WARNING "Target gen_project_binary was not created; skipping binary copy step.")
+endif()
 #### ########################################## ####

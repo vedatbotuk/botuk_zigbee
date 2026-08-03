@@ -1,0 +1,67 @@
+stages:
+  - validate
+  - build
+  - package
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_SUBMODULE_STRATEGY: recursive
+
+.default_image: &default_image
+  image:
+    name: registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
+    pull_policy: always
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH =~ /^(main|dev)$/'
+    - if: '$CI_COMMIT_BRANCH'
+
+validate:config:
+  stage: validate
+  extends: .default_image
+  script:
+    - test -f settings.conf
+    - test -f CMakeLists.txt
+    - python3 - <<'PY'
+import os
+from pathlib import Path
+path = Path('settings.conf')
+text = path.read_text()
+required = ['FIRMWARE_VERSION', 'VERSION', 'MODEL_ID', 'DEVICE_ENDPOINT', 'HW_VERSION', 'MANUFACTURER', 'DEV_PROD']
+missing = [key for key in required if f'{key}=' not in text]
+if missing:
+    raise SystemExit(f'Missing required settings: {", ".join(missing)}')
+print('settings.conf contains the required configuration entries')
+PY
+
+build:esp32h2:
+  stage: build
+  extends: .default_image
+  script:
+    - source "$HOME/esp/esp-idf/export.sh"
+    - idf.py set-target esp32h2
+    - idf.py build
+  artifacts:
+    paths:
+      - build/
+      - sdkconfig.defaults
+    expire_in: 1 week
+
+package:artifacts:
+  stage: package
+  extends: .default_image
+  needs:
+    - build:esp32h2
+  script:
+    - test -f build/bootloader/bootloader.bin
+    - test -f build/partition_table/partition-table.bin
+    - mkdir -p artifacts
+    - cp build/bootloader/bootloader.bin artifacts/
+    - cp build/partition_table/partition-table.bin artifacts/
+    - cp build/*.bin artifacts/ 2>/dev/null || true
+  artifacts:
+    paths:
+      - artifacts/
+    expire_in: 1 week
