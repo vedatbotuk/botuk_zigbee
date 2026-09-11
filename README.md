@@ -43,7 +43,7 @@ To set up the environment for building the project, follow these steps:
     ```bash
     mkdir -p ~/esp
     cd ~/esp
-    git clone -b v5.4-dev --recursive https://github.com/espressif/esp-idf.git
+    git clone -b v5.5.2 --recursive https://github.com/espressif/esp-idf.git
     ```
 1. Install the ESP-IDF toolchain:
     ```bash
@@ -181,4 +181,56 @@ docker build \
 ## Push the Updated Image
 ```bash
 docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
+```
+
+
+# VSCODE Configuration
+## `c_cpp_properties.json`
+Install ESP-IDF Extention
+```
+{
+    "configurations": [
+        {
+            "name": "ESP-IDF",
+            "compilerPath": "",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
+```
+
+## `settings.json`
+```
+{
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32h2"
+  },
+  "idf.currentSetup": "/home/vedat/.espressif/v5.5.2/esp-idf",
+  "idf.openOcdConfigs": [
+    "board/esp32h2-builtin.cfg"
+  ],
+  "clangd.path": "/home/vedat/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/home/vedat/botuk_zigbee/build"
+  ],
+  "terminal.integrated.profiles.linux": {
+    "ESP-IDF Terminal": {
+      "path": "bash",
+      "args": [
+        "-c",
+        ". /home/vedat/.espressif/v5.5.2/esp-idf/export.sh && exec bash"
+      ]
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "ESP-IDF Terminal"
+}
 ```
