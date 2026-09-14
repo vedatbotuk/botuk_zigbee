@@ -62,8 +62,8 @@ void button_loop()
             switch_driver_set_power(pressed);
         }
 
-        // 50ms delay serves as rudimentary software debouncing 
+        // 100ms delay serves as rudimentary software debouncing 
         // and prevents the task from starving the CPU
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
