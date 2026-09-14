@@ -18,7 +18,7 @@
 #include "esp_log.h"
 #include "switch.h"
 #include "driver/gpio.h"
-#include "switch.h"
+#include "update_cluster.h"
 
 void switch_driver_set_power(bool power)
 {
