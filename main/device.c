@@ -23,7 +23,7 @@
 #include "update_cluster.h"
 #include "create_cluster.h"
 #include "signal_handler.h"
-#include <time.h>
+#include "time_sync.h"
 #include <sys/time.h>
 #include "random_utils.h"
 
@@ -642,22 +642,6 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_stack_main_loop();
 }
 
-static void update_rtc_time()
-{
-    while (1)
-    {
-        time_t now;
-        struct tm timeinfo;
-        time(&now);
-        localtime_r(&now, &timeinfo);
-        // ESP_LOGI(TAG, "Current time: %s", asctime(&timeinfo));
-        zb_update_current_time(now);
-        zb_update_local_time(now);
-        // TODO can be optimized
-        vTaskDelay(pdMS_TO_TICKS(1800000)); // 60000 ms = 1 minutes
-    }
-}
-
 void app_main(void)
 {
     ESP_LOGI(TAG, "--- Application Start ---");
@@ -704,5 +688,5 @@ void app_main(void)
 #endif
     vTaskDelay(pdMS_TO_TICKS(1000)); // delay to ensure all tasks are up before starting Zigbee task
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 10, NULL);
-    xTaskCreate(update_rtc_time, "update_rtc_time", 4096, NULL, 3, NULL);
+    xTaskCreate(time_sync_task, "time_sync", 4096, NULL, 3, NULL);
 }
