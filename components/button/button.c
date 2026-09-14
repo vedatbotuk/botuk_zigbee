@@ -19,6 +19,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "switch.h"
 
 static const char *TAG = "BUTTON_DRIVER";
 
@@ -58,6 +59,7 @@ void button_loop()
         {
             last_pressed = pressed;
             ESP_LOGI(TAG, "Button on GPIO 12 %s", pressed ? "PRESSED" : "RELEASED");
+            switch_driver_set_power(pressed);
         }
 
         // 50ms delay serves as rudimentary software debouncing 

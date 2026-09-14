@@ -111,13 +111,11 @@ static esp_err_t zb_switch_attribute_handler(const esp_zb_zcl_set_attr_value_mes
                     switch_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : switch_state;
                     ESP_LOGI(TAG, "Switch sets to %s", switch_state ? "On" : "Off");
                     switch_driver_set_power(switch_state);
-                    zb_update_switch(switch_state);
                 }
 #else
                 switch_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : switch_state;
                 ESP_LOGI(TAG, "Switch sets to %s", switch_state ? "On" : "Off");
                 switch_driver_set_power(switch_state);
-                zb_update_switch(switch_state);
 #endif
             }
         }
