@@ -20,12 +20,12 @@
 #include "nvs_flash.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "update_cluster.h"
 #include "create_cluster.h"
+#include "update_cluster.h"
 #include "signal_handler.h"
-#include "time_sync.h"
 #include <sys/time.h>
 #include "random_utils.h"
+#include "time_sync.h"
 #include "zigbee_network.h"
 
 #ifdef OTA_UPDATE
@@ -82,6 +82,70 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
     create_signal_handler(*signal_struct);
 }
+
+#if defined BUILTIN_LIGHT
+static void zb_stop_builtin_light_flash_task(const char *light_name)
+{
+    if (flash_task_handle != NULL)
+    {
+        vTaskDelete(flash_task_handle);
+        flash_task_handle = NULL;
+        ESP_LOGI(TAG, "Stopped flashing %s", light_name);
+    }
+}
+
+static void zb_start_builtin_light_flash_task(TaskFunction_t task_function, const char *task_name, const char *light_name, UBaseType_t priority)
+{
+    if (flash_task_handle == NULL)
+    {
+        ESP_LOGI(TAG, "Started flashing %s", light_name);
+    }
+    else
+    {
+        zb_stop_builtin_light_flash_task(light_name);
+        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash %s", light_name);
+    }
+
+    xTaskCreate(task_function, task_name, 2048, NULL, priority, &flash_task_handle);
+}
+
+static void zb_deinit_builtin_light_driver(void)
+{
+#if HW_VERSION == 126 || HW_VERSION == 125 || HW_VERSION == 124 || HW_VERSION == 123
+    gpio_light_driver_deinit();
+#elif HW_VERSION == 128 || HW_VERSION == 127
+    light_driver_deinit();
+#endif
+}
+
+static void zb_reset_builtin_light_attributes(void)
+{
+#if HW_VERSION == 128 || HW_VERSION == 127
+    zb_update_builtin_light_flash_red(0);
+    zb_update_builtin_light_flash_yellow(0);
+    zb_update_builtin_light_flash_green(0);
+    zb_update_builtin_light_flash_white(0);
+#elif HW_VERSION == 126 || HW_VERSION == 125 || HW_VERSION == 124 || HW_VERSION == 123
+    zb_update_builtin_light_flash_red(0);
+#if HW_VERSION == 125 || HW_VERSION == 123
+    zb_update_builtin_light_flash_yellow(0);
+#endif
+#endif
+}
+
+#if HW_VERSION == 124 || HW_VERSION == 123
+static void zb_stop_builtin_light_buzzer(void)
+{
+    if (buzzer_task_handle != NULL)
+    {
+        vTaskDelete(buzzer_task_handle);
+        buzzer_task_handle = NULL;
+        ESP_LOGI(TAG, "Stopped buzzer");
+    }
+    buzzer_driver_deinit();
+}
+#endif
+#endif
 
 #if defined SWITCH_FEATURES
 static esp_err_t zb_switch_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
@@ -151,19 +215,10 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 if (light_state)
                 {
-                    if (flash_task_handle == NULL)
-                    {
-                        ESP_LOGI(TAG, "Started flashing red light");
-                    }
-                    else
-                    {
-                        vTaskDelete(flash_task_handle);
-                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
+                    zb_start_builtin_light_flash_task(gpio_light_driver_loop_red, "light_driver_set_red_light", "red light", 1);
 #if HW_VERSION == 125 || HW_VERSION == 123
-                        zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_yellow(0);
 #endif
-                    }
-                    xTaskCreate(gpio_light_driver_loop_red, "light_driver_set_red_light", 2048, NULL, 1, &flash_task_handle);
 #if HW_VERSION == 124 || HW_VERSION == 123
                     if (buzzer_task_handle != NULL)
                     {
@@ -176,27 +231,11 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 }
                 else
                 {
-                    // Stop flashing
-                    if (flash_task_handle != NULL)
-                    {
-                        vTaskDelete(flash_task_handle);
-                        flash_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped flashing red light");
-                    }
-                    gpio_light_driver_deinit();
-                    zb_update_builtin_light_flash_red(0);
-#if HW_VERSION == 125 || HW_VERSION == 123
-                    zb_update_builtin_light_flash_yellow(0);
-#endif
+                    zb_stop_builtin_light_flash_task("red light");
+                    zb_deinit_builtin_light_driver();
+                    zb_reset_builtin_light_attributes();
 #if HW_VERSION == 124 || HW_VERSION == 123
-                    // Stop buzzer
-                    if (buzzer_task_handle != NULL)
-                    {
-                        vTaskDelete(buzzer_task_handle);
-                        buzzer_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped buzzer");
-                    }
-                    buzzer_driver_deinit();
+                    zb_stop_builtin_light_buzzer();
 #endif
                 }
             }
@@ -209,17 +248,8 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 if (light_state)
                 {
-                    if (flash_task_handle == NULL)
-                    {
-                        ESP_LOGI(TAG, "Started flashing yellow light");
-                    }
-                    else
-                    {
-                        vTaskDelete(flash_task_handle);
-                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
-                        zb_update_builtin_light_flash_red(0);
-                    }
-                    xTaskCreate(gpio_light_driver_loop_yellow, "light_driver_set_yellow_light", 2048, NULL, 1, &flash_task_handle);
+                    zb_start_builtin_light_flash_task(gpio_light_driver_loop_yellow, "light_driver_set_yellow_light", "yellow light", 1);
+                    zb_update_builtin_light_flash_red(0);
 #if HW_VERSION == 123
                     if (buzzer_task_handle != NULL)
                     {
@@ -231,25 +261,11 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 }
                 else
                 {
-                    // Stop flashing
-                    if (flash_task_handle != NULL)
-                    {
-                        vTaskDelete(flash_task_handle);
-                        flash_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped flashing yellow light");
-                    }
-                    gpio_light_driver_deinit();
-                    zb_update_builtin_light_flash_red(0);
-                    zb_update_builtin_light_flash_yellow(0);
+                    zb_stop_builtin_light_flash_task("yellow light");
+                    zb_deinit_builtin_light_driver();
+                    zb_reset_builtin_light_attributes();
 #if HW_VERSION == 123
-                    // Stop buzzer
-                    if (buzzer_task_handle != NULL)
-                    {
-                        vTaskDelete(buzzer_task_handle);
-                        buzzer_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped buzzer");
-                    }
-                    buzzer_driver_deinit();
+                    zb_stop_builtin_light_buzzer();
 #endif
                 }
             }
@@ -263,34 +279,16 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 if (light_state)
                 {
-                    if (flash_task_handle == NULL)
-                    {
-                        ESP_LOGI(TAG, "Started flashing red light");
-                    }
-                    else
-                    {
-                        vTaskDelete(flash_task_handle);
-                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash red light");
-                        zb_update_builtin_light_flash_yellow(0);
-                        zb_update_builtin_light_flash_green(0);
-                        zb_update_builtin_light_flash_white(0);
-                    }
-                    xTaskCreate(light_driver_set_red_light, "light_driver_set_red_light", 2048, NULL, 5, &flash_task_handle);
-                }
-                else
-                {
-                    // Stop flashing
-                    if (flash_task_handle != NULL)
-                    {
-                        vTaskDelete(flash_task_handle);
-                        flash_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped flashing red light");
-                    }
-                    light_driver_deinit();
-                    zb_update_builtin_light_flash_red(0);
+                    zb_start_builtin_light_flash_task(light_driver_set_red_light, "light_driver_set_red_light", "red light", 5);
                     zb_update_builtin_light_flash_yellow(0);
                     zb_update_builtin_light_flash_green(0);
                     zb_update_builtin_light_flash_white(0);
+                }
+                else
+                {
+                    zb_stop_builtin_light_flash_task("red light");
+                    zb_deinit_builtin_light_driver();
+                    zb_reset_builtin_light_attributes();
                 }
             }
             break;
@@ -301,34 +299,16 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 if (light_state)
                 {
-                    if (flash_task_handle == NULL)
-                    {
-                        ESP_LOGI(TAG, "Started flashing yellow light");
-                    }
-                    else
-                    {
-                        vTaskDelete(flash_task_handle);
-                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash yellow light");
-                        zb_update_builtin_light_flash_red(0);
-                        zb_update_builtin_light_flash_green(0);
-                        zb_update_builtin_light_flash_white(0);
-                    }
-                    xTaskCreate(light_driver_set_yellow_light, "light_driver_set_yellow_light", 2048, NULL, 4, &flash_task_handle);
+                    zb_start_builtin_light_flash_task(light_driver_set_yellow_light, "light_driver_set_yellow_light", "yellow light", 4);
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_green(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
                 else
                 {
-                    // Stop flashing
-                    if (flash_task_handle != NULL)
-                    {
-                        vTaskDelete(flash_task_handle);
-                        flash_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped flashing yellow light");
-                    }
-                    light_driver_deinit();
-                    zb_update_builtin_light_flash_red(0);
-                    zb_update_builtin_light_flash_yellow(0);
-                    zb_update_builtin_light_flash_green(0);
-                    zb_update_builtin_light_flash_white(0);
+                    zb_stop_builtin_light_flash_task("yellow light");
+                    zb_deinit_builtin_light_driver();
+                    zb_reset_builtin_light_attributes();
                 }
             }
             break;
@@ -339,34 +319,16 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 if (light_state)
                 {
-                    if (flash_task_handle == NULL)
-                    {
-                        ESP_LOGI(TAG, "Started flashing green light");
-                    }
-                    else
-                    {
-                        vTaskDelete(flash_task_handle);
-                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash green light");
-                        zb_update_builtin_light_flash_red(0);
-                        zb_update_builtin_light_flash_yellow(0);
-                        zb_update_builtin_light_flash_white(0);
-                    }
-                    xTaskCreate(light_driver_set_green_light, "light_driver_set_green_light", 2048, NULL, 5, &flash_task_handle);
+                    zb_start_builtin_light_flash_task(light_driver_set_green_light, "light_driver_set_green_light", "green light", 5);
+                    zb_update_builtin_light_flash_red(0);
+                    zb_update_builtin_light_flash_yellow(0);
+                    zb_update_builtin_light_flash_white(0);
                 }
                 else
                 {
-                    // Stop flashing
-                    if (flash_task_handle != NULL)
-                    {
-                        vTaskDelete(flash_task_handle);
-                        flash_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped flashing green light");
-                    }
-                    light_driver_deinit();
-                    zb_update_builtin_light_flash_red(0);
-                    zb_update_builtin_light_flash_yellow(0);
-                    zb_update_builtin_light_flash_green(0);
-                    zb_update_builtin_light_flash_white(0);
+                    zb_stop_builtin_light_flash_task("green light");
+                    zb_deinit_builtin_light_driver();
+                    zb_reset_builtin_light_attributes();
                 }
             }
             break;
@@ -377,34 +339,16 @@ static esp_err_t zb_builtin_light_attribute_handler(const esp_zb_zcl_set_attr_va
                 light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
                 if (light_state)
                 {
-                    if (flash_task_handle == NULL)
-                    {
-                        ESP_LOGI(TAG, "Started flashing white light");
-                    }
-                    else
-                    {
-                        vTaskDelete(flash_task_handle);
-                        ESP_LOGI(TAG, "Already flashing another light, stopping flash task and starting to flash white light");
-                        zb_update_builtin_light_flash_red(0);
-                        zb_update_builtin_light_flash_yellow(0);
-                        zb_update_builtin_light_flash_green(0);
-                    }
-                    xTaskCreate(light_driver_set_white_light, "light_driver_set_white_light", 2048, NULL, 5, &flash_task_handle);
-                }
-                else
-                {
-                    // Stop flashing
-                    if (flash_task_handle != NULL)
-                    {
-                        vTaskDelete(flash_task_handle);
-                        flash_task_handle = NULL;
-                        ESP_LOGI(TAG, "Stopped flashing white light");
-                    }
-                    light_driver_deinit();
+                    zb_start_builtin_light_flash_task(light_driver_set_white_light, "light_driver_set_white_light", "white light", 5);
                     zb_update_builtin_light_flash_red(0);
                     zb_update_builtin_light_flash_yellow(0);
                     zb_update_builtin_light_flash_green(0);
-                    zb_update_builtin_light_flash_white(0);
+                }
+                else
+                {
+                    zb_stop_builtin_light_flash_task("white light");
+                    zb_deinit_builtin_light_driver();
+                    zb_reset_builtin_light_attributes();
                 }
             }
             break;
