@@ -57,6 +57,7 @@
 
 #if defined SWITCH_FEATURES || defined IRRIGATION_FEATURES
 #include "switch.h"
+#include "button.h"
 #endif
 
 #ifdef BUILTIN_LIGHT
@@ -110,13 +111,11 @@ static esp_err_t zb_switch_attribute_handler(const esp_zb_zcl_set_attr_value_mes
                     switch_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : switch_state;
                     ESP_LOGI(TAG, "Switch sets to %s", switch_state ? "On" : "Off");
                     switch_driver_set_power(switch_state);
-                    zb_update_switch(switch_state);
                 }
 #else
                 switch_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : switch_state;
                 ESP_LOGI(TAG, "Switch sets to %s", switch_state ? "On" : "Off");
                 switch_driver_set_power(switch_state);
-                zb_update_switch(switch_state);
 #endif
             }
         }
@@ -677,6 +676,15 @@ void app_main(void)
 #endif
 #ifdef SWITCH_FEATURES
     ESP_LOGI(TAG, "Deferred driver initialization %s", switch_driver_init(SWITCH_DEFAULT_OFF) ? "failed" : "successful");
+    if (button_init() == ESP_OK)
+    {
+        ESP_LOGI(TAG, "Button reader initialized on GPIO %d", BUTTON_INPUT_PIN);
+        xTaskCreate(button_loop, "button_loop", 4096, NULL, 5, NULL);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Button reader initialization failed");
+    }
 #endif
 #if defined DHT22
     xTaskCreate(measure_temp_hum, "measure_temp_hum", 4096, NULL, 5, NULL);
