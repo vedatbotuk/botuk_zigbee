@@ -18,6 +18,7 @@
 #include "esp_log.h"
 #include "switch.h"
 #include "driver/gpio.h"
+#include "update_cluster.h"
 
 void switch_driver_set_power(bool power)
 {
@@ -54,5 +55,6 @@ esp_err_t switch_driver_init(bool power)
   gpio_sleep_sel_dis(GPIO_OUTPUT_PIN_2);
 #endif
   switch_driver_set_power(power);
+  zb_update_switch(power);
   return ESP_OK;
 }
