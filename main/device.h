@@ -16,6 +16,7 @@
  */
 
 #include "esp_zigbee_core.h"
+#include "macros.h"
 
 /* Zigbee configuration */
 #define INSTALLCODE_POLICY_ENABLE false                    /* enable the install code policy for security */
