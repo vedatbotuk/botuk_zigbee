@@ -227,6 +227,22 @@ const definition_16512_127 = {
     ota: true,
 };
 
+// Definition for 50304_125 (1 LED: Red)
+const definition_50304_125 = {
+    zigbeeModel: ["50304_125"],
+    model: "50304_125",
+    vendor: "Botuk",
+    description: "ESP32H2 LED status indicator",
+
+    extend: [...createCustomClustersLED(["red", "yellow"]), ...createBinaryExposes(["red", "yellow"])],
+
+    fromZigbee: createFromZigbee([0xfc07, 0xfc08]),
+    toZigbee: createToZigbee(["red", "yellow"]),
+    configure: createConfigure([0xfc07, 0xfc08]),
+
+    ota: true,
+};
+
 // Definition for 50304_126 (1 LED: Red)
 const definition_50304_126 = {
     zigbeeModel: ["50304_126"],
@@ -524,4 +540,4 @@ const definition_54272_127 = {
 /**
  * Exporting all definitions
  */
-module.exports = [definition_16512_125, definition_16512_127, definition_50304_126, definition_24672_122, definition_54272_127];
+module.exports = [definition_16512_125, definition_16512_127, definition_50304_125, definition_50304_126, definition_24672_122, definition_54272_127];
