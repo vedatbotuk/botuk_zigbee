@@ -1,6 +1,6 @@
 # ESP32-H2 Project
 
-This project involves developing an IoT system using the ESP32-H2 microcontroller. Below are instructions for setting up the project, an overview of the hardware, and the build process using the ESP-IDF toolchain. Additionally, Zigpy is integrated for Zigbee protocol support.
+This project involves developing an IoT system using the ESP32-H2 microcontroller. Below are instructions for setting up the project, an overview of the hardware, and the build process using the ESP-IDF toolchain. Additionally, Python dependencies (including Zigpy for Zigbee protocol support) are managed via `requirements.txt`.
 
 ## Hardware Overview
 The system is built around the **ESP32-H2**, which supports low-power applications and Zigbee connectivity. The primary hardware components include:
@@ -36,52 +36,80 @@ Zigpy is a Zigbee protocol stack enabling communication between Zigbee devices, 
 To set up the environment for building the project, follow these steps:
 
 1. Install the necessary dependencies:
+
     ```bash
     sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
     ```
-1. Clone the ESP-IDF repository:
+
+2. Clone the ESP-IDF repository:
+
     ```bash
     mkdir -p ~/esp
     cd ~/esp
     git clone -b v5.5.2 --recursive https://github.com/espressif/esp-idf.git
     ```
-1. Install the ESP-IDF toolchain:
+
+3. Install the ESP-IDF toolchain:
+
     ```bash
     cd ~/esp/esp-idf
     ./install.sh esp32h2
     ```
-1. Set up the environment variables:
+
+4. Set up the environment variables:
+
     ```bash
     . $HOME/esp/esp-idf/export.sh
     ```
 
-### Zigpy Installation
-To install Zigpy for Zigbee communication:
-```bash
-pip3 install zigpy detools>=0.49.0
-```
+### Python Environment & Dependencies Installation
+To set up a Python virtual environment and install the required dependencies:
+
+1. Create a virtual environment:
+
+    ```bash
+    python3 -m venv venv
+    ```
+
+2. Activate the virtual environment:
+
+    ```bash
+    source venv/bin/activate
+    ```
+
+3. Install Python dependencies from `requirements.txt`:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Build and Flash Instructions
 
 ### Build Process
 To build the project for the ESP32-H2, follow these steps:
+
 1. Set the target for ESP32-H2:
+
     ```bash
     idf.py set-target esp32h2
     ```
-1. Build the project:
+
+2. Build the project:
+
     ```bash
     idf.py build
     ```
 
 ### Flashing the Firmware
 After building the project, flash the firmware to the ESP32-H2 using:
+
 ```bash
 idf.py flash
 ```
 
 ### Monitor Serial Output
 For debugging, monitor the serial output from your ESP32-H2:
+
 ```bash
 idf.py monitor
 ```
@@ -90,8 +118,8 @@ idf.py monitor
 This project uses GitHub Actions for continuous integration. The build triggers automatically on each push or pull request to the main branch. Key steps in the build process include:
 
 1. Set up ESP-IDF: Installs the ESP-IDF toolchain and dependencies on the GitHub runner.
-1. Install Zigpy: Installs the Zigpy library for Zigbee communication.
-1. Build the Project: Builds the project using idf.py.
+2. Install Dependencies: Installs required Python libraries using `requirements.txt`.
+3. Build the Project: Builds the project using `idf.py`.
 
 The configuration is specified in the `.github/workflows/c-cpp.yaml` file.
 
@@ -100,7 +128,7 @@ The configuration is specified in the `.github/workflows/c-cpp.yaml` file.
 - **include/**: Contains header files and configuration files.
 - **.github/workflows/**: Contains the GitHub Actions workflow for automated builds.
 
-# Signal handlar maping
+# Signal handler mapping
 Sensor or feature | Binary value
 ------------------|-------------
 OTA_UPGRADE       | 0 or 1
@@ -111,46 +139,51 @@ LIGHT_SLEEP       | 0 or 1
 DEEP_SLEEP        | 0 or 1
 SENSOR_WATERLEAK  | 0 or 1
 
-For example use a RFD, which suppert temperature, humidity and light sleep.
+For example use a RFD, which supports temperature, humidity and light sleep:
 ```110100```
 
 ## OTA
 ### Header
-OTA Header is defined in ```botuk_index.json```. \
-20 till 51 Bytes are the header bytes. You can check it on ghex. Following is the entry in json file.
-```
+OTA Header is defined in `botuk_index.json`.  
+20 till 51 Bytes are the header bytes. You can check it on ghex. Following is the entry in json file:
+
+```json
 "otaHeaderString": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
 ```
+
 ### OTA zigbee configuration
-esp32 use 64bit packages. Sending datasize should be more den 64 bit. An example configuration in  ```zigbee2mqtt/configuration.yaml```.
-```
+esp32 use 64bit packages. Sending datasize should be more than 64 bit. An example configuration in `zigbee2mqtt/configuration.yaml`:
+
+```yaml
 ota:
   zigbee_ota_override_index_location: my_index.json
   image_block_response_delay: 50
   default_maximum_data_size: 100
-
 ```
-See full configuration under [hass-zigbee2mqtt-config repo](https://gitlab.botuk.de/vedatbotuk/hass-zigbee2mqtt-config)
+
+See full configuration under [hass-zigbee2mqtt-config repo](https://gitlab.botuk.de/vedatbotuk/hass-zigbee2mqtt-config).
 
 ## Docker
-Docker container for gitlab ci/cd. This container build source code.
+Docker container for gitlab ci/cd. This container builds source code.
 
-1. Build the Docker Image
+1. Build the Docker Image:
+
 ```bash
 docker build --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) -t registry.gitlab.botuk.de/vedat/botuk_zigbee:latest .
 ```
 
-1. Push the Docker Image
+2. Push the Docker Image:
+
 ```bash
 docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
 ```
 
 ## Change Version
-In ```setting.conf``` should change after every merge to main.
+In `setting.conf` should change after every merge to main.
 
-In ```main/idf_component.yml``` can be changed following libraries.
-- ```esp-zboss-lib```
-- ```esp-zigbee-lib```
+In `main/idf_component.yml` can be changed following libraries:
+- `esp-zboss-lib`
+- `esp-zigbee-lib`
 
 # esp-idf version update
 This project uses a single source of truth for the ESP-IDF version:
@@ -160,7 +193,7 @@ esp_idf_version.txt
 Updating ESP-IDF only requires modifying this file.
 
 ## Update the Version File
-Open and change version.
+Open and change version:
 ```
 esp_idf_version.txt
 ```
@@ -169,9 +202,11 @@ For example:
 v5.5.1
 ```
 
-After changing version, should be rebuild docker container.
+After changing version, rebuild the docker container.
+
 ## Rebuild the Docker Image
-This is also included in Gitlab CI and trigerred for dev and main branches.
+This is also included in GitLab CI and triggered for dev and main branches:
+
 ```bash
 docker build \
   --build-arg ESP_IDF_VERSION=$(cat esp_idf_version.txt) \
@@ -183,11 +218,11 @@ docker build \
 docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
 ```
 
-
 # VSCODE Configuration
 ## `c_cpp_properties.json`
-Install ESP-IDF Extention
-```
+Install ESP-IDF Extension:
+
+```json
 {
     "configurations": [
         {
@@ -207,7 +242,7 @@ Install ESP-IDF Extention
 ```
 
 ## `settings.json`
-```
+```json
 {
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32h2"
