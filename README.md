@@ -65,19 +65,7 @@ To set up the environment for building the project, follow these steps:
 ### Python Environment & Dependencies Installation
 To set up a Python virtual environment and install the required dependencies:
 
-1. Create a virtual environment:
-
-    ```bash
-    python3 -m venv venv
-    ```
-
-2. Activate the virtual environment:
-
-    ```bash
-    source venv/bin/activate
-    ```
-
-3. Install Python dependencies from `requirements.txt`:
+1. Install Python dependencies from `requirements.txt`:
 
     ```bash
     pip install -r requirements.txt
