@@ -20,6 +20,7 @@
 
 static led_strip_handle_t s_led_strip;
 static uint8_t s_red = 255, s_green = 255, s_blue = 255, s_level = 255;
+static uint32_t flash_wait_time = 3000;
 
 void light_driver_set_color_RGB(uint8_t red, uint8_t green, uint8_t blue)
 {
@@ -168,7 +169,7 @@ void light_driver_loop(uint8_t level)
         light_driver_set_level(0);
         vTaskDelay(pdMS_TO_TICKS(10));
         light_driver_deinit();
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(flash_wait_time));
     }
 }
 
@@ -186,7 +187,7 @@ void gpio_light_driver_loop_red(void *arg)
         gpio_hold_dis(GPIO_LIGHT_RED);
         gpio_set_level(GPIO_LIGHT_RED, false);
         gpio_hold_en(GPIO_LIGHT_RED);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(flash_wait_time));
     }
 }
 
@@ -204,6 +205,6 @@ void gpio_light_driver_loop_yellow(void *arg)
         gpio_hold_dis(GPIO_LIGHT_YELLOW);
         gpio_set_level(GPIO_LIGHT_YELLOW, false);
         gpio_hold_en(GPIO_LIGHT_YELLOW);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(flash_wait_time));
     }
 }
