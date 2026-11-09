@@ -74,6 +74,17 @@ To build the project for the ESP32-H2, follow these steps:
     idf.py build
     ```
 
+### Running Host Tests
+The host-side tests use CMake and a C compiler. Run them from the project root:
+```bash
+make test
+```
+
+The test build and its compile database are stored in `tests/build`. The ESP-IDF `clean` and `fullclean` targets preserve this directory. To remove it explicitly:
+```bash
+make test-clean
+```
+
 ### Flashing the Firmware
 After building the project, flash the firmware to the ESP32-H2 using:
 ```bash
@@ -186,17 +197,28 @@ docker push registry.gitlab.botuk.de/vedat/botuk_zigbee:latest
 
 # VSCODE Configuration
 ## `c_cpp_properties.json`
-Install ESP-IDF Extention
+The ESP-IDF and host tests use separate compile databases. Run `make test` once to generate the host test database.
 ```
 {
     "configurations": [
         {
-            "name": "ESP-IDF",
+            "name": "ESP-IDF Firmware",
             "compilerPath": "",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
+        },
+        {
+            "name": "Host Tests",
+            "compilerPath": "/usr/bin/gcc",
+            "compileCommands": "${workspaceFolder}/tests/build/compile_commands.json",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
             "browse": {
                 "limitSymbolsToIncludedHeaders": true
             }
