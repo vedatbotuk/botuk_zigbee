@@ -20,7 +20,7 @@
 
 static led_strip_handle_t s_led_strip;
 static uint8_t s_red = 255, s_green = 255, s_blue = 255, s_level = 255;
-static uint32_t flash_wait_time = 3000;
+static uint32_t flash_wait_time = 1500;
 
 void light_driver_set_color_RGB(uint8_t red, uint8_t green, uint8_t blue)
 {
