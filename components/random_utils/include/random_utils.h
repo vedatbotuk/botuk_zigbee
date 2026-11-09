@@ -18,7 +18,7 @@
 #ifndef RANDOM_UTILS_H
 #define RANDOM_UTILS_H
 
-// Generates a random number
+// Returns a random number in [0, max_value), or -1 when max_value is not positive.
 int random_utils_generate(int max_value);
 
 #endif // RANDOM_UTILS_H

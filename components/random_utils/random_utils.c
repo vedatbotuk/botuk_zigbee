@@ -23,6 +23,11 @@
 
 int random_utils_generate(int max_value)
 {
+  if (max_value <= 0)
+  {
+    return -1;
+  }
+
   // Gather more entropy from multiple sources
   uint32_t seed = esp_random() ^ esp_timer_get_time();
   seed ^= (esp_random() << 16); // Mix additional hardware RNG bits
