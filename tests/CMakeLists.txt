@@ -12,7 +12,19 @@ target_include_directories(test_random_utils PRIVATE
     ../components/random_utils/include
 )
 
-add_test(NAME random_utils COMMAND test_random_utils)
+add_executable(test_air_quality
+    test_air_quality.c
+    ../components/air_quality/air_quality.c
+)
+target_include_directories(test_air_quality PRIVATE
+    stubs
+    ../components/air_quality/include
+    ../components/update_cluster/include
+    ../components/macros
+    ../components/random_utils/include
+)
+target_compile_definitions(test_air_quality PRIVATE TESTING=1)
+add_test(NAME air_quality COMMAND test_air_quality)
 
 function(add_feature_map_test target sensor_map test_case)
     add_executable(${target} test_macros.c)
