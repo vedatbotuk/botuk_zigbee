@@ -26,6 +26,20 @@ target_include_directories(test_air_quality PRIVATE
 target_compile_definitions(test_air_quality PRIVATE TESTING=1)
 add_test(NAME air_quality COMMAND test_air_quality)
 
+add_executable(test_battery
+    test_battery.c
+    ../components/battery/battery_read.c
+)
+target_include_directories(test_battery PRIVATE
+    stubs
+    ../components/battery/include
+    ../components/update_cluster/include
+    ../components/random_utils/include
+    ../components/macros
+)
+target_compile_definitions(test_battery PRIVATE SIMULATE=1 DEEP_SLEEP=1)
+add_test(NAME battery COMMAND test_battery)
+
 function(add_feature_map_test target sensor_map test_case)
     add_executable(${target} test_macros.c)
     target_include_directories(${target} PRIVATE ../components/macros)

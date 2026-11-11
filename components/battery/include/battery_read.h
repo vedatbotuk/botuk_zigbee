@@ -16,6 +16,7 @@
  */
 
 #include "freertos/FreeRTOS.h"
+#include "esp_err.h"
 
 #ifndef VOLTAGE_CALCULATE_H
 #define VOLTAGE_CALCULATE_H

@@ -1,0 +1,4 @@
+#ifndef TEST_ESP_ADC_ONESHOT_H
+#define TEST_ESP_ADC_ONESHOT_H
+
+#endif
