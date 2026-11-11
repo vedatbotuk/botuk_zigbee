@@ -30,7 +30,6 @@ if(EXISTS ${SETTINGS_FILE})
     # Extract specific settings from the file
     parse_settings("FIRMWARE_VERSION" FIRMWARE_VERSION)
     parse_settings("DEV_PROD" DEV_PROD)
-    parse_settings("MODEL_ID" MODEL_ID)
     parse_settings("DEVICE_ENDPOINT" DEVICE_ENDPOINT)
     parse_settings("ED_KEEP_ALIVE" ED_KEEP_ALIVE)
     parse_settings("HW_VERSION" HW_VERSION)
@@ -41,6 +40,20 @@ if(EXISTS ${SETTINGS_FILE})
     parse_settings("TESTING" TESTING)
     parse_settings("SIMULATE" SIMULATE)
     parse_settings("SIMULATE_ZIGBEE_CHANNEL" SIMULATE_ZIGBEE_CHANNEL)
+
+    set(MODEL_ID "")
+    foreach(FEATURE IN ITEMS
+        END_DEVICE OTA_UPGRADE DHT22 BME680 BATTERY LIGHT_SLEEP DEEP_SLEEP
+        SENSOR_WATERLEAK BUILTIN_LIGHT SWITCH IRRIGATION SOME_FEATURE
+        FEATURE_12 FEATURE_13 FEATURE_14 FEATURE_16
+    )
+        set(FEATURE_VALUE "")
+        parse_settings("${FEATURE}" FEATURE_VALUE)
+        if(NOT "${FEATURE_VALUE}" MATCHES "^[01]$")
+            message(FATAL_ERROR "${FEATURE} must be set to 0 or 1 in ${SETTINGS_FILE}")
+        endif()
+        string(APPEND MODEL_ID "${FEATURE_VALUE}")
+    endforeach()
 
     # Print the values for debugging
     message(STATUS "FIRMWARE_VERSION: ${FIRMWARE_VERSION}")
