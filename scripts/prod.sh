@@ -64,6 +64,12 @@ FIRMWARE_VERSION=$(grep -oP '^FIRMWARE_VERSION=\K.*' settings.conf)
 VERSION=$(grep -oP '^VERSION=\K.*' settings.conf)
 MANUFACTURER=$(grep -oP '^MANUFACTURER=\K.*' settings.conf)
 
+FEATURE_KEYS=(
+  END_DEVICE OTA_UPGRADE DHT22 BME680 BATTERY LIGHT_SLEEP DEEP_SLEEP
+  SENSOR_WATERLEAK BUILTIN_LIGHT SWITCH IRRIGATION SOME_FEATURE
+  FEATURE_12 FEATURE_13 FEATURE_14 FEATURE_16
+)
+
 echo ""
 echo "----------------------------------------"
 echo "Starting the build process..."
@@ -75,10 +81,23 @@ echo "----------------------------------------"
       MODEL_ID=$(echo "$MODEL_ID" | xargs)
       HW_VERSION=$(echo "$HW_VERSION" | xargs)
 
-      # Update the settings.conf file with the new MODEL_ID
-      echo "Updating settings.conf with MODEL_ID: $MODEL_ID"
+      if [[ ! "$MODEL_ID" =~ ^[01]{16}$ ]]; then
+        echo "Invalid MODEL_ID '$MODEL_ID'; expected exactly 16 binary digits."
+        exit 1
+      fi
+
+      # Update the named feature settings from the CSV model bitstring
+      echo "Updating feature settings from MODEL_ID: $MODEL_ID"
       echo "Updating settings.conf with MODEL_ID_DECIMAL: $MODEL_ID_DECIMAL"
-      sed -i "s/^MODEL_ID=.*/MODEL_ID=$MODEL_ID/" "$SETTINGS_FILE"
+      for INDEX in "${!FEATURE_KEYS[@]}"; do
+        FEATURE=${FEATURE_KEYS[$INDEX]}
+        VALUE=${MODEL_ID:$INDEX:1}
+        if ! grep -q "^${FEATURE}=" "$SETTINGS_FILE"; then
+          echo "Feature setting ${FEATURE} is missing from ${SETTINGS_FILE}."
+          exit 1
+        fi
+        sed -i "s/^${FEATURE}=.*/${FEATURE}=${VALUE}/" "$SETTINGS_FILE"
+      done
 
       # Update the settings.conf file with the new HW_VERSION
       echo "Updating settings.conf with HW_VERSION: $HW_VERSION"
