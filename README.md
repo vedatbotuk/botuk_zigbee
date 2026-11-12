@@ -88,6 +88,17 @@ To build the project for the ESP32-H2, follow these steps:
     idf.py build
     ```
 
+### Running Host Tests
+The host-side tests use CMake and a C compiler. Run them from the project root:
+```bash
+make test
+```
+
+The test build and its compile database are stored in `tests/build`. The ESP-IDF `clean` and `fullclean` targets preserve this directory. To remove it explicitly:
+```bash
+make test-clean
+```
+
 ### Flashing the Firmware
 After building the project, flash the firmware to the ESP32-H2 using:
 
@@ -214,12 +225,23 @@ Install ESP-IDF Extension:
 {
     "configurations": [
         {
-            "name": "ESP-IDF",
+            "name": "ESP-IDF Firmware",
             "compilerPath": "",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
+        },
+        {
+            "name": "Host Tests",
+            "compilerPath": "/usr/bin/gcc",
+            "compileCommands": "${workspaceFolder}/tests/build/compile_commands.json",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
             "browse": {
                 "limitSymbolsToIncludedHeaders": true
             }

@@ -27,12 +27,13 @@ include:
 
 # 2. Include Local Sub-Pipelines
   - local: '.gitlab/workflows/templates.yml'
-  - local: '.gitlab/workflows/validate.yml'
+  - local: '.gitlab/workflows/check_pr_description.yml'
   - local: '.gitlab/workflows/build.yml'
   - local: '.gitlab/workflows/deploy.yml'
   - local: '.gitlab/workflows/cleanup.yml'
   - local: '.gitlab/workflows/quality.yml'
   - local: '.gitlab/workflows/release-checks.yml'
+  - local: '.gitlab/workflows/tests.yaml'
 
 # 3. Component Extends
 sync_wiki:
